@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import * as z from 'zod'
+import { useRef, type ChangeEvent } from 'react'
 import type { Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslation } from 'react-i18next'
@@ -38,6 +39,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { FormDirtyIndicator } from '../components/form-dirty-indicator'
 import { FormNavigationGuard } from '../components/form-navigation-guard'
@@ -61,6 +63,7 @@ const _systemInfoSchema = z.object({
   Footer: z.string().optional(),
   About: z.string().optional(),
   HomePageContent: z.string().optional(),
+  HomeInfoCards: z.string().optional(),
   legal: z.object({
     user_agreement: z.string().optional(),
     privacy_policy: z.string().optional(),
@@ -81,6 +84,7 @@ function normalizeValue(value: unknown): string {
 export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
   const { t } = useTranslation()
   const updateOption = useUpdateOption()
+  const homeHtmlInputRef = useRef<HTMLInputElement | null>(null)
 
   const normalizedDefaults: SystemInfoFormValues = {
     theme: {
@@ -93,6 +97,7 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
     Footer: normalizeValue(defaultValues.Footer),
     About: normalizeValue(defaultValues.About),
     HomePageContent: normalizeValue(defaultValues.HomePageContent),
+    HomeInfoCards: normalizeValue(defaultValues.HomeInfoCards),
     legal: {
       user_agreement: normalizeValue(defaultValues.legal?.user_agreement),
       privacy_policy: normalizeValue(defaultValues.legal?.privacy_policy),
@@ -111,6 +116,7 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
     Footer: z.string().optional(),
     About: z.string().optional(),
     HomePageContent: z.string().optional(),
+    HomeInfoCards: z.string().optional(),
     legal: z.object({
       user_agreement: z.string().optional(),
       privacy_policy: z.string().optional(),
@@ -138,6 +144,18 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
         }
       },
     })
+
+  const handleHomeHtmlUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+
+    const content = await file.text()
+    form.setValue('HomePageContent', content, {
+      shouldDirty: true,
+      shouldTouch: true,
+    })
+  }
 
   return (
     <>
@@ -312,17 +330,61 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
                     <FormItem>
                       <FormLabel>{t('Home Page Content')}</FormLabel>
                       <FormControl>
+                        <div className='flex flex-col gap-2'>
+                          <Textarea
+                            placeholder={t(
+                              'Leave empty to use the default announcement home page, or enter Markdown/HTML/URL to replace it.'
+                            )}
+                            rows={6}
+                            {...field}
+                          />
+                          <input
+                            ref={homeHtmlInputRef}
+                            type='file'
+                            accept='.html,.htm,text/html'
+                            className='hidden'
+                            onChange={handleHomeHtmlUpload}
+                          />
+                          <Button
+                            type='button'
+                            variant='outline'
+                            className='w-fit'
+                            onClick={() => homeHtmlInputRef.current?.click()}
+                          >
+                            {t('Upload HTML file')}
+                          </Button>
+                        </div>
+                      </FormControl>
+                      <FormDescription>
+                        {t(
+                          'Administrators can replace the default home page content here. Supports Markdown, HTML, or a complete URL rendered as an iframe.'
+                        )}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </SettingsFormGridItem>
+
+              <SettingsFormGridItem span='full'>
+                <FormField
+                  control={form.control}
+                  name='HomeInfoCards'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('Home Info Cards')}</FormLabel>
+                      <FormControl>
                         <Textarea
                           placeholder={t(
-                            'Leave empty to use the default announcement home page, or enter Markdown/HTML/URL to replace it.'
+                            'Enter a JSON array to customize the default home page cards.'
                           )}
-                          rows={6}
+                          rows={8}
                           {...field}
                         />
                       </FormControl>
                       <FormDescription>
                         {t(
-                          'Administrators can replace the default home page content here. Supports Markdown, HTML, or a complete URL rendered as an iframe.'
+                          'Only administrators can edit this setting. Leave empty to use the built-in cards. Example: [{"title":"Service","lines":["Line 1","Line 2"],"accent":true}]'
                         )}
                       </FormDescription>
                       <FormMessage />

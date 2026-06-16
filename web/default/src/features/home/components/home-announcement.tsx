@@ -16,23 +16,84 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import type { ComponentType, ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from 'react'
 import {
   Bell,
   Bot,
   Clock,
   Coins,
   Headphones,
-  Megaphone,
   ShieldCheck,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useStatus } from '@/hooks/use-status'
+import { getHomeInfoCards } from '../api'
+import type { HomeInfoCard } from '../types'
+
+const DEFAULT_HOME_INFO_CARDS: HomeInfoCard[] = [
+  {
+    title: 'Service and Support',
+    lines: [
+      'After-sales QQ: 2582328031',
+      'Community QQ group: 936663227',
+      'Service hours: 9:00 - 22:00',
+    ],
+    accent: true,
+  },
+  {
+    title: 'Model Support',
+    lines: [
+      'Currently only gpt-5.5 is supported. Use gpt-pro from the full-performance pool.',
+    ],
+  },
+  {
+    title: 'Billing Notes',
+    lines: [
+      'Core rate: 0.25 yuan = 10K',
+      'Recharge rate: 1:1',
+      'Usage multiplier: 0.25x',
+      'Service note: full performance, no false labeling',
+    ],
+  },
+  {
+    title: 'Notice',
+    lines: [
+      'Keep your account and API keys secure, and contact support if you notice abnormal usage.',
+    ],
+    accent: true,
+  },
+]
+
+const CARD_ICONS = [Headphones, Bot, Coins, ShieldCheck]
+
+function parseHomeInfoCards(value?: string): HomeInfoCard[] {
+  if (!value?.trim()) return DEFAULT_HOME_INFO_CARDS
+
+  try {
+    const parsed = JSON.parse(value) as HomeInfoCard[]
+    if (!Array.isArray(parsed)) return DEFAULT_HOME_INFO_CARDS
+
+    const cards = parsed
+      .map((item) => ({
+        title: String(item?.title ?? '').trim(),
+        lines: Array.isArray(item?.lines)
+          ? item.lines.map((line) => String(line).trim()).filter(Boolean)
+          : [],
+        accent: Boolean(item?.accent),
+      }))
+      .filter((item) => item.title && item.lines.length > 0)
+
+    return cards.length > 0 ? cards : DEFAULT_HOME_INFO_CARDS
+  } catch {
+    return DEFAULT_HOME_INFO_CARDS
+  }
+}
 
 function AnnouncementLine(props: {
   icon: ComponentType<{ className?: string; 'aria-hidden'?: boolean }>
   label: string
   children: ReactNode
+  accent?: boolean
 }) {
   const Icon = props.icon
   return (
@@ -54,6 +115,30 @@ export function HomeAnnouncement() {
   const { t } = useTranslation()
   const { status } = useStatus()
   const systemName = (status?.system_name as string | undefined) || 'New API'
+  const [homeInfoCardsRaw, setHomeInfoCardsRaw] = useState('')
+  const homeInfoCards = useMemo(
+    () => parseHomeInfoCards(homeInfoCardsRaw),
+    [homeInfoCardsRaw]
+  )
+
+  useEffect(() => {
+    let mounted = true
+
+    getHomeInfoCards()
+      .then((response) => {
+        if (mounted && response.success) {
+          setHomeInfoCardsRaw(response.data ?? '')
+        }
+      })
+      .catch((error) => {
+        // eslint-disable-next-line no-console
+        console.error('Failed to load home info cards:', error)
+      })
+
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   return (
     <main className='bg-background overflow-x-hidden'>
@@ -93,33 +178,24 @@ export function HomeAnnouncement() {
           </div>
 
           <div className='grid gap-3'>
-            <AnnouncementLine
-              icon={Headphones}
-              label={t('Service and Support')}
-            >
-              <span>{t('After-sales QQ: 2582328031')}</span>
-              <br />
-              <span>{t('Community QQ group: 936663227')}</span>
-              <br />
-              <span>{t('Service hours: 9:00 - 22:00')}</span>
-            </AnnouncementLine>
+            {homeInfoCards.map((card, index) => {
+              const Icon = CARD_ICONS[index % CARD_ICONS.length]
 
-            <AnnouncementLine icon={Bot} label={t('Model Support')}>
-              {t(
-                'Currently only gpt-5.5 is supported. Use gpt-pro from the full-performance pool.'
-              )}
-            </AnnouncementLine>
-
-            <AnnouncementLine icon={Coins} label={t('Billing Notes')}>
-              <div className='grid gap-1 sm:grid-cols-2'>
-                <span>{t('Core rate: 0.25 yuan = 10K')}</span>
-                <span>{t('Recharge rate: 1:1')}</span>
-                <span>{t('Usage multiplier: 0.25x')}</span>
-                <span>
-                  {t('Service note: full performance, no false labeling')}
-                </span>
-              </div>
-            </AnnouncementLine>
+              return (
+                <AnnouncementLine
+                  key={`${card.title}-${index}`}
+                  icon={Icon}
+                  label={card.title}
+                  accent={card.accent}
+                >
+                  <div className='grid gap-1 sm:grid-cols-2'>
+                    {card.lines.map((line) => (
+                      <span key={line}>{line}</span>
+                    ))}
+                  </div>
+                </AnnouncementLine>
+              )
+            })}
           </div>
         </div>
       </section>
@@ -140,28 +216,6 @@ export function HomeAnnouncement() {
             <Clock className='text-primary size-5 shrink-0' aria-hidden />
             <div className='text-sm font-medium'>
               {t('Support available every day')}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className='container mx-auto px-4 py-10'>
-        <div className='flex flex-col gap-3 rounded-2xl border bg-card p-5 shadow-xs sm:flex-row sm:items-center sm:justify-between'>
-          <div className='flex min-w-0 items-start gap-3'>
-            <span className='bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-xl'>
-              <Megaphone className='size-5' aria-hidden />
-            </span>
-            <div>
-              <h2 className='text-lg font-semibold'>
-                {t(
-                  'Thanks for your understanding and support. Enjoy using it.'
-                )}
-              </h2>
-              <p className='mt-1 text-sm text-muted-foreground'>
-                {t(
-                  'Keep your account and API keys secure, and contact support if you notice abnormal usage.'
-                )}
-              </p>
             </div>
           </div>
         </div>

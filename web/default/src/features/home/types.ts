@@ -29,6 +29,18 @@ export interface HomePageContentResponse {
   data?: string
 }
 
+export interface HomeInfoCard {
+  title: string
+  lines: string[]
+  accent?: boolean
+}
+
+export interface HomeInfoCardsResponse {
+  success: boolean
+  message?: string
+  data?: string
+}
+
 /**
  * Home page content result from hook
  */

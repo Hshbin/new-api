@@ -22,6 +22,51 @@ import { Typography } from '@douyinfe/semi-ui';
 
 const { Text, Title } = Typography;
 
+const DEFAULT_HOME_INFO_CARDS = [
+  {
+    title: '服务与支持',
+    lines: ['售后 QQ：2582328031', '交流 QQ 群：936663227', '服务时间：9:00 - 22:00'],
+    accent: true,
+  },
+  {
+    title: '模型支持',
+    lines: ['当前仅支持 gpt-5.5，使用 gpt-pro 满血号池。'],
+  },
+  {
+    title: '计费说明',
+    lines: [
+      '核心汇率：0.25 元 = 10K',
+      '充值额度：1 : 1',
+      '使用倍率：0.25x',
+      '服务说明：满血不虚标',
+    ],
+  },
+  {
+    title: '温馨提示',
+    lines: [
+      '请妥善保管账号与密钥，避免泄露造成额度损失。',
+      '如遇异常消耗或服务问题，请及时联系售后支持。',
+    ],
+    accent: true,
+  },
+];
+
+const normalizeHomeInfoCards = (cards) => {
+  if (!Array.isArray(cards)) return DEFAULT_HOME_INFO_CARDS;
+
+  const normalized = cards
+    .map((item) => ({
+      title: String(item?.title || '').trim(),
+      lines: Array.isArray(item?.lines)
+        ? item.lines.map((line) => String(line).trim()).filter(Boolean)
+        : [],
+      accent: Boolean(item?.accent),
+    }))
+    .filter((item) => item.title && item.lines.length > 0);
+
+  return normalized.length > 0 ? normalized : DEFAULT_HOME_INFO_CARDS;
+};
+
 const InfoBlock = ({ title, children, accent = false }) => (
   <section
     className={`relative overflow-hidden rounded-3xl border border-semi-color-border bg-semi-color-bg-1 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${
@@ -38,7 +83,9 @@ const InfoBlock = ({ title, children, accent = false }) => (
   </section>
 );
 
-const ClassicAnnouncementHome = ({ systemName }) => {
+const ClassicAnnouncementHome = ({ systemName, infoCards }) => {
+  const cards = normalizeHomeInfoCards(infoCards);
+
   return (
     <main className='classic-home-default w-full overflow-hidden bg-semi-color-bg-0'>
       <div className='pointer-events-none absolute left-1/2 top-24 h-72 w-72 -translate-x-1/2 rounded-full bg-blue-500/10 blur-3xl' />
@@ -58,38 +105,17 @@ const ClassicAnnouncementHome = ({ systemName }) => {
         </header>
 
         <div className='grid grid-cols-1 gap-4 lg:grid-cols-2'>
-          <InfoBlock title='服务与支持' accent>
-            <p>售后 QQ：2582328031</p>
-            <p>交流 QQ 群：936663227</p>
-            <p>服务时间：9:00 - 22:00</p>
-          </InfoBlock>
-
-          <InfoBlock title='模型支持'>
-            <p>
-              当前仅支持 <strong>gpt-5.5</strong>，使用{' '}
-              <strong>gpt-pro</strong> 满血号池。
-            </p>
-          </InfoBlock>
-
-          <InfoBlock title='计费说明'>
-            <p>
-              核心汇率：<strong>0.25 元 = 1 万</strong>
-            </p>
-            <p>
-              充值额度：<strong>1 : 1</strong>
-            </p>
-            <p>
-              使用倍率：<strong>0.25x</strong>
-            </p>
-            <p>
-              服务说明：<strong>满血不虚标</strong>
-            </p>
-          </InfoBlock>
-
-          <InfoBlock title='温馨提示' accent>
-            <p>请妥善保管账号与密钥，避免泄露造成额度损失。</p>
-            <p>如遇异常消耗或服务问题，请及时联系售后支持。</p>
-          </InfoBlock>
+          {cards.map((card, index) => (
+            <InfoBlock
+              key={`${card.title}-${index}`}
+              title={card.title}
+              accent={card.accent}
+            >
+              {card.lines.map((line) => (
+                <p key={line}>{line}</p>
+              ))}
+            </InfoBlock>
+          ))}
         </div>
       </div>
     </main>

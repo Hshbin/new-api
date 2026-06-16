@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { api } from '@/lib/api'
-import type { HomePageContentResponse } from './types'
+import type { HomeInfoCardsResponse, HomePageContentResponse } from './types'
 
 // ============================================================================
 // Home Page APIs
@@ -29,5 +29,10 @@ import type { HomePageContentResponse } from './types'
  */
 export async function getHomePageContent(): Promise<HomePageContentResponse> {
   const res = await api.get('/api/home_page_content')
+  return res.data
+}
+
+export async function getHomeInfoCards(): Promise<HomeInfoCardsResponse> {
+  const res = await api.get('/api/home_info_cards')
   return res.data
 }

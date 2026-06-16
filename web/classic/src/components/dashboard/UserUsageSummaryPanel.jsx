@@ -22,14 +22,24 @@ import { Button, Card, Progress, Skeleton, Typography } from '@douyinfe/semi-ui'
 import { API, renderQuota, showError } from '../../helpers';
 
 const { Text, Title } = Typography;
+
 const ADMIN_DIMENSIONS = [
   { value: 'user', label: '按用户' },
   { value: 'token', label: '按令牌' },
   { value: 'model', label: '按模型' },
 ];
+
 const USER_DIMENSIONS = [
   { value: 'token', label: '按令牌' },
   { value: 'model', label: '按模型' },
+];
+
+const QUICK_RANGES = [
+  { value: '1h', label: '1 小时', milliseconds: 60 * 60 * 1000 },
+  { value: '5h', label: '5 小时', milliseconds: 5 * 60 * 60 * 1000 },
+  { value: '1d', label: '1 天', milliseconds: 24 * 60 * 60 * 1000 },
+  { value: '1w', label: '1 周', milliseconds: 7 * 24 * 60 * 60 * 1000 },
+  { value: '1m', label: '1 个月', milliseconds: 30 * 24 * 60 * 60 * 1000 },
 ];
 
 const pad = (value) => String(value).padStart(2, '0');
@@ -38,10 +48,32 @@ const toDateTimeLocal = (date) => {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 };
 
+const getQuickRange = (value) => {
+  const quickRange =
+    QUICK_RANGES.find((item) => item.value === value) ||
+    QUICK_RANGES[QUICK_RANGES.length - 1];
+  const end = new Date();
+  const start = new Date(end.getTime() - quickRange.milliseconds);
+  return {
+    startTime: toDateTimeLocal(start),
+    endTime: toDateTimeLocal(end),
+  };
+};
+
+const getActiveQuickRange = (startTime, endTime) => {
+  const start = new Date(startTime).getTime();
+  const end = new Date(endTime).getTime();
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return '';
+  const diff = end - start;
+  const tolerance = 90 * 1000;
+  const matched = QUICK_RANGES.find(
+    (item) => Math.abs(diff - item.milliseconds) <= tolerance,
+  );
+  return matched?.value || '';
+};
+
 const toTimestamp = (value) => {
-  if (!value) {
-    return 0;
-  }
+  if (!value) return 0;
   const timestamp = Math.floor(new Date(value).getTime() / 1000);
   return Number.isFinite(timestamp) ? timestamp : 0;
 };
@@ -72,15 +104,10 @@ const StatItem = ({ label, value, loading }) => (
 
 const UserUsageSummaryPanel = ({ isAdminUser = false }) => {
   const dimensions = isAdminUser ? ADMIN_DIMENSIONS : USER_DIMENSIONS;
-  const now = useMemo(() => new Date(), []);
-  const sevenDaysAgo = useMemo(() => {
-    const date = new Date(now);
-    date.setDate(date.getDate() - 7);
-    return date;
-  }, [now]);
+  const defaultRange = useMemo(() => getQuickRange('1m'), []);
 
-  const [startTime, setStartTime] = useState(toDateTimeLocal(sevenDaysAgo));
-  const [endTime, setEndTime] = useState(toDateTimeLocal(now));
+  const [startTime, setStartTime] = useState(defaultRange.startTime);
+  const [endTime, setEndTime] = useState(defaultRange.endTime);
   const [dimension, setDimension] = useState(isAdminUser ? 'user' : 'token');
   const [summary, setSummary] = useState(null);
   const [items, setItems] = useState([]);
@@ -130,6 +157,13 @@ const UserUsageSummaryPanel = ({ isAdminUser = false }) => {
 
   const cacheHitRate = Math.min(Number(summary?.cache_hit_rate || 0), 1);
   const cacheHitPercent = `${(cacheHitRate * 100).toFixed(2)}%`;
+  const activeQuickRange = getActiveQuickRange(startTime, endTime);
+
+  const applyQuickRange = (value) => {
+    const nextRange = getQuickRange(value);
+    setStartTime(nextRange.startTime);
+    setEndTime(nextRange.endTime);
+  };
 
   return (
     <Card className='mb-4 !rounded-2xl' bodyStyle={{ padding: 20 }}>
@@ -138,7 +172,9 @@ const UserUsageSummaryPanel = ({ isAdminUser = false }) => {
           <Title heading={5} className='!mb-1'>
             我的用量统计
           </Title>
-          <Text type='tertiary'>查看当前账号在所选时间范围内的 Token 与缓存用量</Text>
+          <Text type='tertiary'>
+            查看当前账号在所选时间范围内的 Token 与缓存用量
+          </Text>
         </div>
         <div className='flex flex-col gap-2 sm:flex-row sm:items-center'>
           <div className='flex rounded-lg bg-semi-color-fill-0 p-1'>
@@ -149,6 +185,22 @@ const UserUsageSummaryPanel = ({ isAdminUser = false }) => {
                 onClick={() => setDimension(item.value)}
                 className={`rounded-md px-3 py-1 text-sm ${
                   dimension === item.value
+                    ? 'bg-semi-color-bg-0 font-semibold text-semi-color-text-0 shadow-sm'
+                    : 'text-semi-color-text-2'
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+          <div className='flex flex-wrap gap-1 rounded-lg bg-semi-color-fill-0 p-1'>
+            {QUICK_RANGES.map((item) => (
+              <button
+                key={item.value}
+                type='button'
+                onClick={() => applyQuickRange(item.value)}
+                className={`rounded-md px-3 py-1 text-sm ${
+                  activeQuickRange === item.value
                     ? 'bg-semi-color-bg-0 font-semibold text-semi-color-text-0 shadow-sm'
                     : 'text-semi-color-text-2'
                 }`}
@@ -172,6 +224,9 @@ const UserUsageSummaryPanel = ({ isAdminUser = false }) => {
           />
           <Button type='primary' onClick={loadSummary} loading={loading}>
             查询
+          </Button>
+          <Button onClick={loadSummary} loading={loading}>
+            刷新
           </Button>
         </div>
       </div>

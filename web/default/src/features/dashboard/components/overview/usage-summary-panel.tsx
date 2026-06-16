@@ -22,6 +22,7 @@ import {
   Activity,
   DatabaseZap,
   Gauge,
+  RefreshCw,
   RotateCcw,
   Sparkles,
   TrendingUp,
@@ -32,11 +33,21 @@ import { formatNumber, formatQuota, formatTokens } from '@/lib/format'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { CompactDateTimeRangePicker } from '@/features/usage-logs/components/compact-date-time-range-picker'
 import { getUserUsageSummary } from '../../api'
 import type { UsageSummaryDimension } from '../../types'
 
 const MAX_USAGE_RANGE_SECONDS = 30 * 24 * 60 * 60
+const QUICK_RANGES = [
+  { value: '1h', label: '1 hour', amount: 1, unit: 'hour' },
+  { value: '5h', label: '5 hours', amount: 5, unit: 'hour' },
+  { value: '1d', label: '1 day', amount: 1, unit: 'day' },
+  { value: '1w', label: '1 week', amount: 1, unit: 'week' },
+  { value: '1m', label: '1 month', amount: 30, unit: 'day' },
+] as const
+
+type QuickRangeValue = (typeof QUICK_RANGES)[number]['value']
 
 type UsageRange = {
   start: Date
@@ -46,8 +57,51 @@ type UsageRange = {
 function getDefaultRange(): UsageRange {
   const now = dayjs()
   return {
-    start: now.subtract(6, 'day').startOf('day').toDate(),
-    end: now.endOf('day').toDate(),
+    start: now.subtract(30, 'day').toDate(),
+    end: now.toDate(),
+  }
+}
+
+function getQuickRange(value: QuickRangeValue): UsageRange {
+  const quickRange = QUICK_RANGES.find((item) => item.value === value)
+  const now = dayjs()
+  if (!quickRange) return getDefaultRange()
+
+  return {
+    start: now.subtract(quickRange.amount, quickRange.unit).toDate(),
+    end: now.toDate(),
+  }
+}
+
+function getMatchingQuickRange(range: UsageRange): QuickRangeValue | null {
+  const diffSeconds = dayjs(range.end).diff(dayjs(range.start), 'second')
+  const toleranceSeconds = 90
+
+  for (const item of QUICK_RANGES) {
+    const expected = dayjs(range.end)
+      .subtract(item.amount, item.unit)
+      .diff(dayjs(range.end), 'second')
+    if (Math.abs(diffSeconds + expected) <= toleranceSeconds) {
+      return item.value
+    }
+  }
+
+  return null
+}
+
+function getMaxRangeStart(end: Date): Date {
+  return dayjs(end).subtract(30, 'day').toDate()
+}
+
+function getRangeLimitLabel(t: (key: string) => string): string {
+  return t('1 month')
+}
+
+function getInitialRange(): UsageRange {
+  const now = dayjs()
+  return {
+    start: now.subtract(30, 'day').toDate(),
+    end: now.toDate(),
   }
 }
 
@@ -66,7 +120,7 @@ function clampRange(range: { start?: Date; end?: Date }): UsageRange {
 
   const seconds = (end.getTime() - start.getTime()) / 1000
   if (seconds > MAX_USAGE_RANGE_SECONDS) {
-    start = dayjs(end).subtract(29, 'day').startOf('day').toDate()
+    start = getMaxRangeStart(end)
   }
 
   return { start, end }
@@ -99,7 +153,7 @@ function getDimensionLabel(t: (key: string) => string, dimension: UsageSummaryDi
 export function UsageSummaryPanel({ isAdmin = false }: UsageSummaryPanelProps) {
   const { t } = useTranslation()
   const dimensions = isAdmin ? ADMIN_DIMENSIONS : USER_DIMENSIONS
-  const [range, setRange] = useState<UsageRange>(() => getDefaultRange())
+  const [range, setRange] = useState<UsageRange>(() => getInitialRange())
   const [dimension, setDimension] = useState<UsageSummaryDimension>(() =>
     isAdmin ? 'user' : 'token'
   )
@@ -139,6 +193,7 @@ export function UsageSummaryPanel({ isAdmin = false }: UsageSummaryPanelProps) {
     100,
     Math.max(0, (summary?.cache_hit_rate ?? 0) * 100)
   )
+  const activeQuickRange = getMatchingQuickRange(range)
 
   const statItems = [
     {
@@ -202,6 +257,22 @@ export function UsageSummaryPanel({ isAdmin = false }: UsageSummaryPanelProps) {
                 </button>
               ))}
             </div>
+            <ToggleGroup
+              type='single'
+              value={activeQuickRange ?? undefined}
+              onValueChange={(value) => {
+                if (value) setRange(getQuickRange(value as QuickRangeValue))
+              }}
+              size='sm'
+              variant='outline'
+              className='flex-wrap'
+            >
+              {QUICK_RANGES.map((item) => (
+                <ToggleGroupItem key={item.value} value={item.value}>
+                  {t(item.label)}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
             <CompactDateTimeRangePicker
               start={range.start}
               end={range.end}
@@ -211,10 +282,19 @@ export function UsageSummaryPanel({ isAdmin = false }: UsageSummaryPanelProps) {
             <Button
               type='button'
               variant='outline'
-              onClick={() => setRange(getDefaultRange())}
+              onClick={() => setRange(getQuickRange('1m'))}
             >
               <RotateCcw data-icon='inline-start' />
               {t('Reset')}
+            </Button>
+            <Button
+              type='button'
+              variant='outline'
+              onClick={() => summaryQuery.refetch()}
+              disabled={summaryQuery.isFetching}
+            >
+              <RefreshCw data-icon='inline-start' />
+              {t('Refresh')}
             </Button>
           </div>
         </div>
@@ -272,7 +352,7 @@ export function UsageSummaryPanel({ isAdmin = false }: UsageSummaryPanelProps) {
                   {t('Range limit')}
                 </div>
                 <div className='mt-1 font-semibold tabular-nums'>
-                  {t('30 days')}
+                  {getRangeLimitLabel(t)}
                 </div>
               </div>
             </div>
