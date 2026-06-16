@@ -40,6 +40,7 @@ import {
 } from '@douyinfe/semi-icons';
 import { Link } from 'react-router-dom';
 import NoticeModal from '../../components/layout/NoticeModal';
+import ClassicAnnouncementHome from './ClassicAnnouncementHome';
 import {
   Moonshot,
   OpenAI,
@@ -156,7 +157,11 @@ const Home = () => {
         isMobile={isMobile}
       />
       {homePageContentLoaded && homePageContent === '' ? (
-        <div className='classic-home-default w-full overflow-x-hidden'>
+        <>
+          <ClassicAnnouncementHome
+            systemName={statusState?.status?.system_name}
+          />
+          <div className='hidden classic-home-default w-full overflow-x-hidden'>
           {/* Banner 部分 */}
           <div className='classic-home-hero w-full border-b border-semi-color-border relative overflow-x-hidden'>
             {/* 背景模糊晕染球 */}
@@ -333,7 +338,8 @@ const Home = () => {
               </div>
             </div>
           </div>
-        </div>
+          </div>
+        </>
       ) : (
         <div className='classic-page-fill overflow-x-hidden w-full'>
           {homePageContent.startsWith('https://') ? (

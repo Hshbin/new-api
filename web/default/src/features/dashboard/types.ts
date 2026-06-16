@@ -34,6 +34,11 @@ export interface QuotaDataItem {
 }
 
 export interface UserUsageSummary {
+  dimension?: UsageSummaryDimension
+  key?: string
+  label?: string
+  user_id?: number
+  token_id?: number
   quota: number
   request_count: number
   prompt_tokens: number
@@ -42,8 +47,18 @@ export interface UserUsageSummary {
   cached_tokens: number
   cache_write_tokens: number
   cache_hit_rate: number
+  start_timestamp?: number
+  end_timestamp?: number
+}
+
+export type UsageSummaryDimension = 'user' | 'token' | 'model'
+
+export interface UsageSummaryResult {
+  dimension: UsageSummaryDimension
   start_timestamp: number
   end_timestamp: number
+  total: UserUsageSummary
+  items: UserUsageSummary[]
 }
 
 // ============================================================================

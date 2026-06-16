@@ -34,6 +34,7 @@ import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { CompactDateTimeRangePicker } from '@/features/usage-logs/components/compact-date-time-range-picker'
 import { getUserUsageSummary } from '../../api'
+import type { UsageSummaryDimension } from '../../types'
 
 const MAX_USAGE_RANGE_SECONDS = 30 * 24 * 60 * 60
 
@@ -78,16 +79,35 @@ function formatRate(value: number): string {
   }).format(value)
 }
 
-export function UsageSummaryPanel() {
+type UsageSummaryPanelProps = {
+  isAdmin?: boolean
+}
+
+const DIMENSIONS: UsageSummaryDimension[] = ['user', 'token', 'model']
+
+function getDimensionLabel(t: (key: string) => string, dimension: UsageSummaryDimension) {
+  if (dimension === 'token') {
+    return t('By token')
+  }
+  if (dimension === 'model') {
+    return t('By model')
+  }
+  return t('By user')
+}
+
+export function UsageSummaryPanel({ isAdmin = false }: UsageSummaryPanelProps) {
   const { t } = useTranslation()
   const [range, setRange] = useState<UsageRange>(() => getDefaultRange())
+  const [dimension, setDimension] = useState<UsageSummaryDimension>('user')
 
   const queryRange = useMemo(
     () => ({
       start_timestamp: toUnixSeconds(range.start),
       end_timestamp: toUnixSeconds(range.end),
+      dimension,
+      limit: 20,
     }),
-    [range.end, range.start]
+    [dimension, range.end, range.start]
   )
 
   const summaryQuery = useQuery({
@@ -97,12 +117,14 @@ export function UsageSummaryPanel() {
       'usage-summary',
       queryRange.start_timestamp,
       queryRange.end_timestamp,
+      queryRange.dimension,
     ],
     queryFn: () => getUserUsageSummary(queryRange),
     staleTime: 60 * 1000,
   })
 
-  const summary = summaryQuery.data?.data
+  const summary = summaryQuery.data?.data.total
+  const rows = summaryQuery.data?.data.items ?? []
   const cacheHitPercent = Math.min(
     100,
     Math.max(0, (summary?.cache_hit_rate ?? 0) * 100)
@@ -148,10 +170,28 @@ export function UsageSummaryPanel() {
           <div className='flex flex-col gap-1'>
             <h3 className='text-base font-semibold'>{t('My token usage')}</h3>
             <p className='text-muted-foreground text-sm'>
-              {t('Review your own token consumption and cache hit rate')}
+              {isAdmin
+                ? t('Review token consumption and cache hit rate by dimension')
+                : t('Review your own token consumption and cache hit rate')}
             </p>
           </div>
           <div className='flex w-full flex-col gap-2 sm:flex-row lg:w-auto'>
+            <div className='bg-muted flex h-9 rounded-md p-1'>
+              {DIMENSIONS.map((item) => (
+                <button
+                  key={item}
+                  type='button'
+                  onClick={() => setDimension(item)}
+                  className={`rounded px-3 text-sm font-medium whitespace-nowrap transition-colors ${
+                    dimension === item
+                      ? 'bg-background text-foreground shadow-xs'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {getDimensionLabel(t, item)}
+                </button>
+              ))}
+            </div>
             <CompactDateTimeRangePicker
               start={range.start}
               end={range.end}
@@ -227,6 +267,75 @@ export function UsageSummaryPanel() {
               </div>
             </div>
           </div>
+        </div>
+
+        <div className='overflow-hidden rounded-xl border'>
+          <div className='bg-muted/40 grid grid-cols-[minmax(8rem,1fr)_7rem_7rem_7rem_6rem] gap-3 px-3 py-2 text-xs font-medium text-muted-foreground max-lg:hidden'>
+            <span>{getDimensionLabel(t, dimension)}</span>
+            <span className='text-right'>{t('Total tokens')}</span>
+            <span className='text-right'>{t('Requests')}</span>
+            <span className='text-right'>{t('Usage cost')}</span>
+            <span className='text-right'>{t('Cache hit rate')}</span>
+          </div>
+          {summaryQuery.isLoading ? (
+            <div className='space-y-2 p-3'>
+              <Skeleton className='h-9 w-full' />
+              <Skeleton className='h-9 w-full' />
+              <Skeleton className='h-9 w-full' />
+            </div>
+          ) : rows.length === 0 ? (
+            <div className='p-6 text-center text-sm text-muted-foreground'>
+              {t('No usage data in the selected range')}
+            </div>
+          ) : (
+            <div className='divide-y'>
+              {rows.map((row) => (
+                <div
+                  key={`${row.dimension}-${row.key}`}
+                  className='grid gap-2 px-3 py-3 text-sm lg:grid-cols-[minmax(8rem,1fr)_7rem_7rem_7rem_6rem] lg:gap-3'
+                >
+                  <div className='min-w-0'>
+                    <div className='truncate font-medium'>{row.label}</div>
+                    <div className='text-muted-foreground mt-0.5 truncate text-xs'>
+                      {row.key}
+                    </div>
+                  </div>
+                  <div className='flex justify-between gap-2 lg:block lg:text-right'>
+                    <span className='text-muted-foreground lg:hidden'>
+                      {t('Total tokens')}
+                    </span>
+                    <span className='font-mono tabular-nums'>
+                      {formatTokens(row.total_tokens ?? 0)}
+                    </span>
+                  </div>
+                  <div className='flex justify-between gap-2 lg:block lg:text-right'>
+                    <span className='text-muted-foreground lg:hidden'>
+                      {t('Requests')}
+                    </span>
+                    <span className='font-mono tabular-nums'>
+                      {formatNumber(row.request_count ?? 0)}
+                    </span>
+                  </div>
+                  <div className='flex justify-between gap-2 lg:block lg:text-right'>
+                    <span className='text-muted-foreground lg:hidden'>
+                      {t('Usage cost')}
+                    </span>
+                    <span className='font-mono tabular-nums'>
+                      {formatQuota(row.quota ?? 0)}
+                    </span>
+                  </div>
+                  <div className='flex justify-between gap-2 lg:block lg:text-right'>
+                    <span className='text-muted-foreground lg:hidden'>
+                      {t('Cache hit rate')}
+                    </span>
+                    <span className='font-mono tabular-nums'>
+                      {formatRate(row.cache_hit_rate ?? 0)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

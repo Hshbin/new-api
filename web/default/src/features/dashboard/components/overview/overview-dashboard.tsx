@@ -744,7 +744,7 @@ export function OverviewDashboard() {
 
       <SummaryCards />
 
-      <UsageSummaryPanel />
+      <UsageSummaryPanel isAdmin={isAdmin} />
 
       {showContentPanels && (
         <CardStaggerContainer
