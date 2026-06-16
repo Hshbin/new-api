@@ -183,7 +183,7 @@ const Dashboard = () => {
         CHART_CONFIG={CHART_CONFIG}
       />
 
-      <UserUsageSummaryPanel />
+      <UserUsageSummaryPanel isAdminUser={dashboardData.isAdminUser} />
 
       {/* API信息和图表面板 */}
       <div className='mb-4'>

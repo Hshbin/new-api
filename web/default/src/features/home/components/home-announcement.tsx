@@ -16,7 +16,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Link } from '@tanstack/react-router'
 import type { ComponentType, ReactNode } from 'react'
 import {
   Bell,
@@ -25,15 +24,10 @@ import {
   Coins,
   Headphones,
   Megaphone,
-  Rocket,
-  Settings,
   ShieldCheck,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { useAuthStore } from '@/stores/auth-store'
-import { ROLE } from '@/lib/roles'
 import { useStatus } from '@/hooks/use-status'
-import { Button } from '@/components/ui/button'
 
 function AnnouncementLine(props: {
   icon: ComponentType<{ className?: string; 'aria-hidden'?: boolean }>
@@ -59,20 +53,17 @@ function AnnouncementLine(props: {
 export function HomeAnnouncement() {
   const { t } = useTranslation()
   const { status } = useStatus()
-  const user = useAuthStore((state) => state.auth.user)
-  const isAuthenticated = Boolean(user)
-  const isAdmin = Boolean(user?.role && user.role >= ROLE.ADMIN)
   const systemName = (status?.system_name as string | undefined) || 'New API'
 
   return (
     <main className='bg-background overflow-x-hidden'>
       <section className='relative border-b'>
         <div
-          className='absolute inset-0 bg-[linear-gradient(120deg,color-mix(in_oklch,var(--primary)_10%,transparent),transparent_38%),radial-gradient(ellipse_70%_50%_at_88%_8%,color-mix(in_oklch,var(--accent)_20%,transparent),transparent_62%)]'
+          className='absolute inset-0 bg-[linear-gradient(120deg,color-mix(in_oklch,var(--primary)_12%,transparent),transparent_38%),radial-gradient(ellipse_70%_50%_at_88%_8%,color-mix(in_oklch,var(--accent)_24%,transparent),transparent_62%),radial-gradient(ellipse_55%_45%_at_16%_88%,color-mix(in_oklch,var(--primary)_10%,transparent),transparent_64%)]'
           aria-hidden='true'
         />
-        <div className='relative container mx-auto grid min-h-[calc(100vh-4rem)] items-center gap-8 px-4 py-12 lg:grid-cols-[minmax(0,0.95fr)_minmax(420px,1.05fr)] lg:py-16'>
-          <div className='flex max-w-2xl flex-col gap-7'>
+        <div className='relative container mx-auto grid min-h-[calc(100vh-4rem)] items-center gap-8 px-4 py-12 lg:grid-cols-[minmax(0,0.92fr)_minmax(420px,1.08fr)] lg:py-16'>
+          <div className='flex max-w-2xl flex-col gap-7 rounded-[2rem] border bg-card/70 p-6 shadow-sm backdrop-blur md:p-8'>
             <div className='flex items-center gap-3'>
               <img
                 src='/logo.png'
@@ -84,52 +75,20 @@ export function HomeAnnouncement() {
                   {systemName}
                 </div>
                 <h1 className='text-4xl font-semibold tracking-tight sm:text-5xl'>
-                  {t('System Announcement')}
+                  {t('Welcome to use')}
                 </h1>
               </div>
             </div>
 
             <div className='flex flex-col gap-4'>
               <p className='text-xl leading-relaxed text-foreground sm:text-2xl'>
-                {t('Welcome to this AI model service platform.')}
+                {t('Enjoy stable and high-performance model services.')}
               </p>
               <p className='max-w-xl text-base leading-relaxed text-muted-foreground'>
                 {t(
                   'Use resources reasonably, avoid high-frequency abnormal requests, and help keep service stable.'
                 )}
               </p>
-            </div>
-
-            <div className='flex flex-wrap gap-2'>
-              {isAuthenticated ? (
-                <Button render={<Link to='/dashboard' />}>
-                  <Rocket data-icon='inline-start' />
-                  {t('Go to dashboard')}
-                </Button>
-              ) : (
-                <Button render={<Link to='/sign-in' />}>
-                  <Rocket data-icon='inline-start' />
-                  {t('Sign in')}
-                </Button>
-              )}
-              <Button variant='outline' render={<Link to='/pricing' />}>
-                <Coins data-icon='inline-start' />
-                {t('View pricing')}
-              </Button>
-              {isAdmin && (
-                <Button
-                  variant='outline'
-                  render={
-                    <Link
-                      to='/system-settings/site/$section'
-                      params={{ section: 'system-info' }}
-                    />
-                  }
-                >
-                  <Settings data-icon='inline-start' />
-                  {t('Configure home page')}
-                </Button>
-              )}
             </div>
           </div>
 
@@ -200,24 +159,11 @@ export function HomeAnnouncement() {
               </h2>
               <p className='mt-1 text-sm text-muted-foreground'>
                 {t(
-                  'Administrators can replace this default page from system settings.'
+                  'Keep your account and API keys secure, and contact support if you notice abnormal usage.'
                 )}
               </p>
             </div>
           </div>
-          {isAdmin && (
-            <Button
-              render={
-                <Link
-                  to='/system-settings/site/$section'
-                  params={{ section: 'system-info' }}
-                />
-              }
-            >
-              <Settings data-icon='inline-start' />
-              {t('Edit content')}
-            </Button>
-          )}
         </div>
       </section>
     </main>

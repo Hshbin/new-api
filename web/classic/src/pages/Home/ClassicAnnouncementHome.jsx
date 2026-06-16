@@ -18,17 +18,21 @@ For commercial licensing, please contact support@quantumnous.com
 */
 
 import React from 'react';
-import { Button, Typography } from '@douyinfe/semi-ui';
-import { Link } from 'react-router-dom';
+import { Typography } from '@douyinfe/semi-ui';
 
 const { Text, Title } = Typography;
 
-const InfoBlock = ({ title, children }) => (
-  <section className='rounded-2xl border border-semi-color-border bg-semi-color-bg-1 p-5 shadow-sm'>
-    <Title heading={5} className='!mb-3'>
+const InfoBlock = ({ title, children, accent = false }) => (
+  <section
+    className={`relative overflow-hidden rounded-3xl border border-semi-color-border bg-semi-color-bg-1 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${
+      accent ? 'ring-1 ring-blue-200/50' : ''
+    }`}
+  >
+    <div className='absolute -right-8 -top-8 h-24 w-24 rounded-full bg-blue-500/10 blur-2xl' />
+    <Title heading={5} className='relative !mb-3'>
       {title}
     </Title>
-    <div className='space-y-1 text-base leading-7 text-semi-color-text-0'>
+    <div className='relative space-y-1 text-base leading-7 text-semi-color-text-0'>
       {children}
     </div>
   </section>
@@ -36,34 +40,25 @@ const InfoBlock = ({ title, children }) => (
 
 const ClassicAnnouncementHome = ({ systemName }) => {
   return (
-    <main className='classic-home-default w-full bg-semi-color-bg-0'>
-      <div className='mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10 md:px-8 md:py-14'>
-        <header className='flex flex-col gap-4 border-b border-semi-color-border pb-6 md:flex-row md:items-end md:justify-between'>
-          <div>
+    <main className='classic-home-default w-full overflow-hidden bg-semi-color-bg-0'>
+      <div className='pointer-events-none absolute left-1/2 top-24 h-72 w-72 -translate-x-1/2 rounded-full bg-blue-500/10 blur-3xl' />
+      <div className='relative mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10 md:px-8 md:py-14'>
+        <header className='rounded-[2rem] border border-semi-color-border bg-semi-color-bg-1/90 p-6 shadow-sm md:p-8'>
+          <div className='flex flex-col gap-4'>
             <Text type='tertiary' className='text-sm'>
               {systemName || 'AI 模型服务平台'}
             </Text>
             <Title heading={2} className='!mb-2 !mt-1'>
-              系统公告
+              欢迎使用
             </Title>
             <Text className='max-w-3xl text-base leading-7 text-semi-color-text-1'>
-              欢迎使用本站 AI 模型服务平台。请合理使用资源，避免高频异常请求，共同保持服务稳定。
+              请合理使用资源，避免高频异常请求，共同保持服务稳定。
             </Text>
-          </div>
-          <div className='flex gap-3'>
-            <Link to='/console'>
-              <Button theme='solid' type='primary'>
-                进入控制台
-              </Button>
-            </Link>
-            <Link to='/console/setting'>
-              <Button>配置首页</Button>
-            </Link>
           </div>
         </header>
 
         <div className='grid grid-cols-1 gap-4 lg:grid-cols-2'>
-          <InfoBlock title='服务与支持'>
+          <InfoBlock title='服务与支持' accent>
             <p>售后 QQ：2582328031</p>
             <p>交流 QQ 群：936663227</p>
             <p>服务时间：9:00 - 22:00</p>
@@ -91,9 +86,9 @@ const ClassicAnnouncementHome = ({ systemName }) => {
             </p>
           </InfoBlock>
 
-          <InfoBlock title='温馨提示'>
-            <p>管理员可在系统设置中修改首页内容。</p>
-            <p>感谢理解与支持，祝使用愉快。</p>
+          <InfoBlock title='温馨提示' accent>
+            <p>请妥善保管账号与密钥，避免泄露造成额度损失。</p>
+            <p>如遇异常消耗或服务问题，请及时联系售后支持。</p>
           </InfoBlock>
         </div>
       </div>

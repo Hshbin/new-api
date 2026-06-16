@@ -22,8 +22,12 @@ import { Button, Card, Progress, Skeleton, Typography } from '@douyinfe/semi-ui'
 import { API, renderQuota, showError } from '../../helpers';
 
 const { Text, Title } = Typography;
-const DIMENSIONS = [
+const ADMIN_DIMENSIONS = [
   { value: 'user', label: '按用户' },
+  { value: 'token', label: '按令牌' },
+  { value: 'model', label: '按模型' },
+];
+const USER_DIMENSIONS = [
   { value: 'token', label: '按令牌' },
   { value: 'model', label: '按模型' },
 ];
@@ -66,7 +70,8 @@ const StatItem = ({ label, value, loading }) => (
   </div>
 );
 
-const UserUsageSummaryPanel = () => {
+const UserUsageSummaryPanel = ({ isAdminUser = false }) => {
+  const dimensions = isAdminUser ? ADMIN_DIMENSIONS : USER_DIMENSIONS;
   const now = useMemo(() => new Date(), []);
   const sevenDaysAgo = useMemo(() => {
     const date = new Date(now);
@@ -76,10 +81,16 @@ const UserUsageSummaryPanel = () => {
 
   const [startTime, setStartTime] = useState(toDateTimeLocal(sevenDaysAgo));
   const [endTime, setEndTime] = useState(toDateTimeLocal(now));
-  const [dimension, setDimension] = useState('user');
+  const [dimension, setDimension] = useState(isAdminUser ? 'user' : 'token');
   const [summary, setSummary] = useState(null);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isAdminUser && dimension === 'user') {
+      setDimension('token');
+    }
+  }, [dimension, isAdminUser]);
 
   const loadSummary = async () => {
     const start = toTimestamp(startTime);
@@ -131,7 +142,7 @@ const UserUsageSummaryPanel = () => {
         </div>
         <div className='flex flex-col gap-2 sm:flex-row sm:items-center'>
           <div className='flex rounded-lg bg-semi-color-fill-0 p-1'>
-            {DIMENSIONS.map((item) => (
+            {dimensions.map((item) => (
               <button
                 key={item.value}
                 type='button'
@@ -213,7 +224,7 @@ const UserUsageSummaryPanel = () => {
 
       <div className='mt-4 overflow-hidden rounded-xl border border-semi-color-border'>
         <div className='hidden grid-cols-[minmax(0,1fr)_120px_100px_120px_100px] gap-3 bg-semi-color-fill-0 px-4 py-2 text-xs font-medium text-semi-color-text-2 lg:grid'>
-          <span>{DIMENSIONS.find((item) => item.value === dimension)?.label}</span>
+          <span>{dimensions.find((item) => item.value === dimension)?.label}</span>
           <span className='text-right'>总 Token</span>
           <span className='text-right'>请求数</span>
           <span className='text-right'>使用费用</span>

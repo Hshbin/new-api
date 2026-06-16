@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   Activity,
@@ -83,7 +83,8 @@ type UsageSummaryPanelProps = {
   isAdmin?: boolean
 }
 
-const DIMENSIONS: UsageSummaryDimension[] = ['user', 'token', 'model']
+const ADMIN_DIMENSIONS: UsageSummaryDimension[] = ['user', 'token', 'model']
+const USER_DIMENSIONS: UsageSummaryDimension[] = ['token', 'model']
 
 function getDimensionLabel(t: (key: string) => string, dimension: UsageSummaryDimension) {
   if (dimension === 'token') {
@@ -97,8 +98,17 @@ function getDimensionLabel(t: (key: string) => string, dimension: UsageSummaryDi
 
 export function UsageSummaryPanel({ isAdmin = false }: UsageSummaryPanelProps) {
   const { t } = useTranslation()
+  const dimensions = isAdmin ? ADMIN_DIMENSIONS : USER_DIMENSIONS
   const [range, setRange] = useState<UsageRange>(() => getDefaultRange())
-  const [dimension, setDimension] = useState<UsageSummaryDimension>('user')
+  const [dimension, setDimension] = useState<UsageSummaryDimension>(() =>
+    isAdmin ? 'user' : 'token'
+  )
+
+  useEffect(() => {
+    if (!isAdmin && dimension === 'user') {
+      setDimension('token')
+    }
+  }, [dimension, isAdmin])
 
   const queryRange = useMemo(
     () => ({
@@ -177,7 +187,7 @@ export function UsageSummaryPanel({ isAdmin = false }: UsageSummaryPanelProps) {
           </div>
           <div className='flex w-full flex-col gap-2 sm:flex-row lg:w-auto'>
             <div className='bg-muted flex h-9 rounded-md p-1'>
-              {DIMENSIONS.map((item) => (
+              {dimensions.map((item) => (
                 <button
                   key={item}
                   type='button'
