@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -523,6 +524,109 @@ type Stat struct {
 	Quota int `json:"quota"`
 	Rpm   int `json:"rpm"`
 	Tpm   int `json:"tpm"`
+}
+
+type UserUsageSummary struct {
+	Quota               int     `json:"quota"`
+	RequestCount        int64   `json:"request_count"`
+	PromptTokens        int64   `json:"prompt_tokens"`
+	CompletionTokens    int64   `json:"completion_tokens"`
+	TotalTokens         int64   `json:"total_tokens"`
+	CachedTokens        int64   `json:"cached_tokens"`
+	CacheWriteTokens    int64   `json:"cache_write_tokens"`
+	CacheHitRate        float64 `json:"cache_hit_rate"`
+	StartTimestamp      int64   `json:"start_timestamp"`
+	EndTimestamp        int64   `json:"end_timestamp"`
+}
+
+type usageSummaryLogRow struct {
+	Quota            int
+	PromptTokens     int
+	CompletionTokens int
+	Other            string
+}
+
+func mapInt64Value(data map[string]interface{}, key string) int64 {
+	value, ok := data[key]
+	if !ok || value == nil {
+		return 0
+	}
+	switch v := value.(type) {
+	case int:
+		return int64(v)
+	case int64:
+		return v
+	case float64:
+		return int64(v)
+	case float32:
+		return int64(v)
+	case string:
+		n, _ := strconv.ParseInt(strings.TrimSpace(v), 10, 64)
+		return n
+	default:
+		return 0
+	}
+}
+
+func cacheReadTokensFromOther(other string) int64 {
+	if strings.TrimSpace(other) == "" {
+		return 0
+	}
+	otherMap, err := common.StrToMap(other)
+	if err != nil || otherMap == nil {
+		return 0
+	}
+	return mapInt64Value(otherMap, "cache_tokens")
+}
+
+func cacheWriteTokensFromOther(other string) int64 {
+	if strings.TrimSpace(other) == "" {
+		return 0
+	}
+	otherMap, err := common.StrToMap(other)
+	if err != nil || otherMap == nil {
+		return 0
+	}
+	if tokens := mapInt64Value(otherMap, "cache_write_tokens"); tokens > 0 {
+		return tokens
+	}
+	return mapInt64Value(otherMap, "cache_creation_tokens")
+}
+
+func GetUserUsageSummary(userId int, startTimestamp int64, endTimestamp int64) (summary UserUsageSummary, err error) {
+	summary.StartTimestamp = startTimestamp
+	summary.EndTimestamp = endTimestamp
+
+	tx := LOG_DB.Model(&Log{}).
+		Select("quota, prompt_tokens, completion_tokens, other").
+		Where("user_id = ? and type = ?", userId, LogTypeConsume)
+	if startTimestamp != 0 {
+		tx = tx.Where("created_at >= ?", startTimestamp)
+	}
+	if endTimestamp != 0 {
+		tx = tx.Where("created_at <= ?", endTimestamp)
+	}
+
+	var rows []usageSummaryLogRow
+	if err = tx.Find(&rows).Error; err != nil {
+		common.SysError("failed to query user usage summary: " + err.Error())
+		return summary, errors.New("查询用量统计失败")
+	}
+
+	summary.RequestCount = int64(len(rows))
+	for _, row := range rows {
+		summary.Quota += row.Quota
+		summary.PromptTokens += int64(row.PromptTokens)
+		summary.CompletionTokens += int64(row.CompletionTokens)
+		summary.CachedTokens += cacheReadTokensFromOther(row.Other)
+		summary.CacheWriteTokens += cacheWriteTokensFromOther(row.Other)
+	}
+	summary.TotalTokens = summary.PromptTokens + summary.CompletionTokens
+	if summary.PromptTokens > 0 && summary.CachedTokens > 0 {
+		summary.CacheHitRate = float64(summary.CachedTokens) / float64(summary.PromptTokens)
+	}
+
+	return summary, nil
 }
 
 func SumUsedQuota(logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, channel int, group string) (stat Stat, err error) {

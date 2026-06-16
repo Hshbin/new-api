@@ -313,14 +313,16 @@ export function SystemInfoSection({ defaultValues }: SystemInfoSectionProps) {
                       <FormLabel>{t('Home Page Content')}</FormLabel>
                       <FormControl>
                         <Textarea
-                          placeholder={t('Welcome to our New API...')}
+                          placeholder={t(
+                            'Leave empty to use the default announcement home page, or enter Markdown/HTML/URL to replace it.'
+                          )}
                           rows={6}
                           {...field}
                         />
                       </FormControl>
                       <FormDescription>
                         {t(
-                          'Content displayed on the home page (supports Markdown)'
+                          'Administrators can replace the default home page content here. Supports Markdown, HTML, or a complete URL rendered as an iframe.'
                         )}
                       </FormDescription>
                       <FormMessage />

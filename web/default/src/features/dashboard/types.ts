@@ -33,6 +33,19 @@ export interface QuotaDataItem {
   quota?: number
 }
 
+export interface UserUsageSummary {
+  quota: number
+  request_count: number
+  prompt_tokens: number
+  completion_tokens: number
+  total_tokens: number
+  cached_tokens: number
+  cache_write_tokens: number
+  cache_hit_rate: number
+  start_timestamp: number
+  end_timestamp: number
+}
+
 // ============================================================================
 // Uptime Monitoring Types
 // ============================================================================
