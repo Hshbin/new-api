@@ -38,6 +38,24 @@ const parseHomeInfoCards = (value) => {
   }
 };
 
+const decodeHtmlEntities = (value) => {
+  if (!value || !value.includes('&')) return value;
+
+  const textarea = document.createElement('textarea');
+  textarea.innerHTML = value;
+  return textarea.value;
+};
+
+const looksLikeHtml = (value) => {
+  const trimmed = value.trim();
+  return (
+    /^<!doctype\s+html/i.test(trimmed) ||
+    /^<html[\s>]/i.test(trimmed) ||
+    /<body[\s>]/i.test(trimmed) ||
+    /<\/?[a-z][\s\S]*>/i.test(trimmed)
+  );
+};
+
 const Home = () => {
   const { i18n } = useTranslation();
   const [statusState] = useContext(StatusContext);
@@ -49,12 +67,14 @@ const Home = () => {
   const isMobile = useIsMobile();
 
   const displayHomePageContent = async () => {
-    setHomePageContent(localStorage.getItem('home_page_content') || '');
+    setHomePageContent(
+      decodeHtmlEntities(localStorage.getItem('home_page_content') || ''),
+    );
     const res = await API.get('/api/home_page_content');
     const { success, message, data } = res.data;
     if (success) {
-      let content = data || '';
-      if (content && !content.startsWith('https://')) {
+      let content = decodeHtmlEntities(data || '');
+      if (content && !content.startsWith('https://') && !looksLikeHtml(content)) {
         content = marked.parse(content);
       }
       setHomePageContent(content);
