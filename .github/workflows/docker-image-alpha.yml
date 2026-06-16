@@ -57,6 +57,7 @@ jobs:
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
       - name: Log in to Docker Hub
+        if: env.CHANNEL == 'alpha'
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -77,8 +78,9 @@ jobs:
             calciumion/new-api
             ghcr.io/${{ env.GHCR_REPOSITORY }}
 
-      - name: Build & push single-arch (to both registries)
-        id: build
+      - name: Build & push single-arch (alpha to both registries)
+        id: build_alpha
+        if: env.CHANNEL == 'alpha'
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
@@ -95,21 +97,53 @@ jobs:
           provenance: mode=max
           sbom: true
 
+      - name: Build & push single-arch (branch to GHCR)
+        id: build_ghcr
+        if: env.CHANNEL != 'alpha'
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          push: true
+          tags: |
+            ghcr.io/${{ env.GHCR_REPOSITORY }}:${{ env.CHANNEL }}-${{ matrix.arch }}
+            ghcr.io/${{ env.GHCR_REPOSITORY }}:${{ steps.version.outputs.value }}-${{ matrix.arch }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: mode=max
+          sbom: true
+
       - name: Install cosign
         uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
 
-      - name: Sign image with cosign
+      - name: Sign alpha images with cosign
+        if: env.CHANNEL == 'alpha'
         run: |
-          cosign sign --yes calciumion/new-api@${{ steps.build.outputs.digest }}
-          cosign sign --yes ghcr.io/${{ env.GHCR_REPOSITORY }}@${{ steps.build.outputs.digest }}
+          cosign sign --yes calciumion/new-api@${{ steps.build_alpha.outputs.digest }}
+          cosign sign --yes ghcr.io/${{ env.GHCR_REPOSITORY }}@${{ steps.build_alpha.outputs.digest }}
 
-      - name: Output digest
+      - name: Sign GHCR image with cosign
+        if: env.CHANNEL != 'alpha'
+        run: cosign sign --yes ghcr.io/${{ env.GHCR_REPOSITORY }}@${{ steps.build_ghcr.outputs.digest }}
+
+      - name: Output alpha digest
+        if: env.CHANNEL == 'alpha'
         run: |
           echo "### Docker Image Digest (${{ matrix.arch }})" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "calciumion/new-api:${{ env.CHANNEL }}-${{ matrix.arch }}" >> $GITHUB_STEP_SUMMARY
           echo "ghcr.io/${{ env.GHCR_REPOSITORY }}:${{ env.CHANNEL }}-${{ matrix.arch }}" >> $GITHUB_STEP_SUMMARY
-          echo "${{ steps.build.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.build_alpha.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Output GHCR digest
+        if: env.CHANNEL != 'alpha'
+        run: |
+          echo "### Docker Image Digest (${{ matrix.arch }})" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "ghcr.io/${{ env.GHCR_REPOSITORY }}:${{ env.CHANNEL }}-${{ matrix.arch }}" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.build_ghcr.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
 
   create_manifests:
@@ -142,12 +176,14 @@ jobs:
           echo "CHANNEL=$CHANNEL" >> $GITHUB_ENV
 
       - name: Log in to Docker Hub
+        if: env.CHANNEL == 'alpha'
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Create & push manifest (Docker Hub - channel)
+        if: env.CHANNEL == 'alpha'
         run: |
           docker buildx imagetools create \
             -t calciumion/new-api:${CHANNEL} \
@@ -155,6 +191,7 @@ jobs:
             calciumion/new-api:${CHANNEL}-arm64
 
       - name: Create & push manifest (Docker Hub - versioned alpha)
+        if: env.CHANNEL == 'alpha'
         run: |
           docker buildx imagetools create \
             -t calciumion/new-api:${VERSION} \
@@ -186,7 +223,5 @@ jobs:
         run: |
           echo "### Multi-arch Manifest Digests" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          docker buildx imagetools inspect calciumion/new-api:${CHANNEL} >> $GITHUB_STEP_SUMMARY
-          echo "---" >> $GITHUB_STEP_SUMMARY
           docker buildx imagetools inspect ghcr.io/${GHCR_REPOSITORY}:${CHANNEL} >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
