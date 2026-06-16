@@ -80,12 +80,8 @@ const toTimestamp = (value) => {
 
 const formatToken = (value) => {
   const num = Number(value || 0);
-  if (num >= 100000000) {
-    return `${(num / 100000000).toFixed(2)} 亿`;
-  }
-  if (num >= 10000) {
-    return `${(num / 10000).toFixed(2)} 万`;
-  }
+  if (num >= 100000000) return `${(num / 100000000).toFixed(2)} 亿`;
+  if (num >= 10000) return `${(num / 10000).toFixed(2)} 万`;
   return num.toLocaleString();
 };
 
@@ -112,6 +108,7 @@ const UserUsageSummaryPanel = ({ isAdminUser = false }) => {
   const [summary, setSummary] = useState(null);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   useEffect(() => {
     if (!isAdminUser && dimension === 'user') {
@@ -152,8 +149,11 @@ const UserUsageSummaryPanel = ({ isAdminUser = false }) => {
   };
 
   useEffect(() => {
-    loadSummary();
-  }, [dimension]);
+    const timer = setTimeout(() => {
+      loadSummary();
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [dimension, startTime, endTime]);
 
   const cacheHitRate = Math.min(Number(summary?.cache_hit_rate || 0), 1);
   const cacheHitPercent = `${(cacheHitRate * 100).toFixed(2)}%`;
@@ -163,6 +163,7 @@ const UserUsageSummaryPanel = ({ isAdminUser = false }) => {
     const nextRange = getQuickRange(value);
     setStartTime(nextRange.startTime);
     setEndTime(nextRange.endTime);
+    setDetailsOpen(false);
   };
 
   return (
@@ -212,19 +213,22 @@ const UserUsageSummaryPanel = ({ isAdminUser = false }) => {
           <input
             type='datetime-local'
             value={startTime}
-            onChange={(event) => setStartTime(event.target.value)}
+            onChange={(event) => {
+              setStartTime(event.target.value);
+              setDetailsOpen(false);
+            }}
             className='h-9 rounded-md border border-semi-color-border bg-semi-color-bg-0 px-3 text-sm text-semi-color-text-0'
           />
           <span className='hidden text-semi-color-text-2 sm:inline'>至</span>
           <input
             type='datetime-local'
             value={endTime}
-            onChange={(event) => setEndTime(event.target.value)}
+            onChange={(event) => {
+              setEndTime(event.target.value);
+              setDetailsOpen(false);
+            }}
             className='h-9 rounded-md border border-semi-color-border bg-semi-color-bg-0 px-3 text-sm text-semi-color-text-0'
           />
-          <Button type='primary' onClick={loadSummary} loading={loading}>
-            查询
-          </Button>
           <Button onClick={loadSummary} loading={loading}>
             刷新
           </Button>
@@ -277,59 +281,70 @@ const UserUsageSummaryPanel = ({ isAdminUser = false }) => {
         </div>
       </div>
 
-      <div className='mt-4 overflow-hidden rounded-xl border border-semi-color-border'>
-        <div className='hidden grid-cols-[minmax(0,1fr)_120px_100px_120px_100px] gap-3 bg-semi-color-fill-0 px-4 py-2 text-xs font-medium text-semi-color-text-2 lg:grid'>
-          <span>{dimensions.find((item) => item.value === dimension)?.label}</span>
-          <span className='text-right'>总 Token</span>
-          <span className='text-right'>请求数</span>
-          <span className='text-right'>使用费用</span>
-          <span className='text-right'>命中率</span>
-        </div>
-        {loading && items.length === 0 ? (
-          <div className='space-y-2 p-4'>
-            <Skeleton active paragraph={{ rows: 3 }} />
-          </div>
-        ) : items.length === 0 ? (
-          <div className='p-6 text-center text-sm text-semi-color-text-2'>
-            当前时间范围暂无用量数据
-          </div>
-        ) : (
-          <div className='divide-y divide-semi-color-border'>
-            {items.map((item) => (
-              <div
-                key={`${item.dimension}-${item.key}`}
-                className='grid gap-2 px-4 py-3 text-sm lg:grid-cols-[minmax(0,1fr)_120px_100px_120px_100px] lg:gap-3'
-              >
-                <div className='min-w-0'>
-                  <div className='truncate font-medium text-semi-color-text-0'>
-                    {item.label}
-                  </div>
-                  <div className='mt-0.5 truncate text-xs text-semi-color-text-2'>
-                    {item.key}
-                  </div>
-                </div>
-                <div className='flex justify-between gap-2 lg:block lg:text-right'>
-                  <span className='text-semi-color-text-2 lg:hidden'>总 Token</span>
-                  <span className='font-mono'>{formatToken(item.total_tokens)}</span>
-                </div>
-                <div className='flex justify-between gap-2 lg:block lg:text-right'>
-                  <span className='text-semi-color-text-2 lg:hidden'>请求数</span>
-                  <span className='font-mono'>
-                    {Number(item.request_count || 0).toLocaleString()}
-                  </span>
-                </div>
-                <div className='flex justify-between gap-2 lg:block lg:text-right'>
-                  <span className='text-semi-color-text-2 lg:hidden'>使用费用</span>
-                  <span className='font-mono'>{renderQuota(item.quota || 0, 6)}</span>
-                </div>
-                <div className='flex justify-between gap-2 lg:block lg:text-right'>
-                  <span className='text-semi-color-text-2 lg:hidden'>命中率</span>
-                  <span className='font-mono'>
-                    {(Number(item.cache_hit_rate || 0) * 100).toFixed(2)}%
-                  </span>
-                </div>
+      <div className='mt-4'>
+        <Button
+          block
+          onClick={() => setDetailsOpen((open) => !open)}
+          disabled={loading && items.length === 0}
+        >
+          用量明细（{items.length}）
+        </Button>
+        {detailsOpen && (
+          <div className='mt-3 overflow-hidden rounded-xl border border-semi-color-border'>
+            <div className='hidden grid-cols-[minmax(0,1fr)_120px_100px_120px_100px] gap-3 bg-semi-color-fill-0 px-4 py-2 text-xs font-medium text-semi-color-text-2 lg:grid'>
+              <span>{dimensions.find((item) => item.value === dimension)?.label}</span>
+              <span className='text-right'>总 Token</span>
+              <span className='text-right'>请求数</span>
+              <span className='text-right'>使用费用</span>
+              <span className='text-right'>命中率</span>
+            </div>
+            {loading && items.length === 0 ? (
+              <div className='space-y-2 p-4'>
+                <Skeleton active paragraph={{ rows: 3 }} />
               </div>
-            ))}
+            ) : items.length === 0 ? (
+              <div className='p-6 text-center text-sm text-semi-color-text-2'>
+                当前时间范围暂无用量数据
+              </div>
+            ) : (
+              <div className='max-h-80 divide-y divide-semi-color-border overflow-y-auto'>
+                {items.map((item) => (
+                  <div
+                    key={`${item.dimension}-${item.key}`}
+                    className='grid gap-2 px-4 py-3 text-sm lg:grid-cols-[minmax(0,1fr)_120px_100px_120px_100px] lg:gap-3'
+                  >
+                    <div className='min-w-0'>
+                      <div className='truncate font-medium text-semi-color-text-0'>
+                        {item.label}
+                      </div>
+                      <div className='mt-0.5 truncate text-xs text-semi-color-text-2'>
+                        {item.key}
+                      </div>
+                    </div>
+                    <div className='flex justify-between gap-2 lg:block lg:text-right'>
+                      <span className='text-semi-color-text-2 lg:hidden'>总 Token</span>
+                      <span className='font-mono'>{formatToken(item.total_tokens)}</span>
+                    </div>
+                    <div className='flex justify-between gap-2 lg:block lg:text-right'>
+                      <span className='text-semi-color-text-2 lg:hidden'>请求数</span>
+                      <span className='font-mono'>
+                        {Number(item.request_count || 0).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className='flex justify-between gap-2 lg:block lg:text-right'>
+                      <span className='text-semi-color-text-2 lg:hidden'>使用费用</span>
+                      <span className='font-mono'>{renderQuota(item.quota || 0, 6)}</span>
+                    </div>
+                    <div className='flex justify-between gap-2 lg:block lg:text-right'>
+                      <span className='text-semi-color-text-2 lg:hidden'>命中率</span>
+                      <span className='font-mono'>
+                        {(Number(item.cache_hit_rate || 0) * 100).toFixed(2)}%
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

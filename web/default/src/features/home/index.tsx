@@ -25,7 +25,7 @@ import { useHomePageContent } from './hooks'
 
 export function Home() {
   const { t } = useTranslation()
-  const { content, isLoaded, isUrl } = useHomePageContent()
+  const { content, isLoaded, isUrl, isHtml } = useHomePageContent()
 
   if (!isLoaded) {
     return (
@@ -46,6 +46,11 @@ export function Home() {
               src={content}
               className='h-screen w-full border-none'
               title={t('Custom Home Page')}
+            />
+          ) : isHtml ? (
+            <div
+              className='custom-home-content'
+              dangerouslySetInnerHTML={{ __html: content }}
             />
           ) : (
             <div className='container mx-auto py-8'>

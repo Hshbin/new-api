@@ -76,6 +76,7 @@ export function useHomePageContent(): HomePageContentResult {
   }, [])
 
   let isUrl = false
+  let isHtml = false
   try {
     const url = new URL(content)
     isUrl = url.protocol === 'http:' || url.protocol === 'https:'
@@ -83,5 +84,12 @@ export function useHomePageContent(): HomePageContentResult {
     // not a URL
   }
 
-  return { content, isLoaded, isUrl }
+  const trimmed = content.trim()
+  isHtml =
+    /^<!doctype\s+html/i.test(trimmed) ||
+    /^<html[\s>]/i.test(trimmed) ||
+    /<body[\s>]/i.test(trimmed) ||
+    /<\/?[a-z][\s\S]*>/i.test(trimmed)
+
+  return { content, isLoaded, isUrl, isHtml }
 }

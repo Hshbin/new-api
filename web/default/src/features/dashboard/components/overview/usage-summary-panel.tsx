@@ -20,6 +20,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   Activity,
+  ChevronDown,
   DatabaseZap,
   Gauge,
   RefreshCw,
@@ -34,6 +35,11 @@ import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 import { CompactDateTimeRangePicker } from '@/features/usage-logs/components/compact-date-time-range-picker'
 import { getUserUsageSummary } from '../../api'
 import type { UsageSummaryDimension } from '../../types'
@@ -157,6 +163,7 @@ export function UsageSummaryPanel({ isAdmin = false }: UsageSummaryPanelProps) {
   const [dimension, setDimension] = useState<UsageSummaryDimension>(() =>
     isAdmin ? 'user' : 'token'
   )
+  const [detailsOpen, setDetailsOpen] = useState(false)
 
   useEffect(() => {
     if (!isAdmin && dimension === 'user') {
@@ -276,7 +283,10 @@ export function UsageSummaryPanel({ isAdmin = false }: UsageSummaryPanelProps) {
             <CompactDateTimeRangePicker
               start={range.start}
               end={range.end}
-              onChange={(nextRange) => setRange(clampRange(nextRange))}
+              onChange={(nextRange) => {
+                setRange(clampRange(nextRange))
+                setDetailsOpen(false)
+              }}
               className='lg:w-80'
             />
             <Button
@@ -359,74 +369,87 @@ export function UsageSummaryPanel({ isAdmin = false }: UsageSummaryPanelProps) {
           </div>
         </div>
 
-        <div className='overflow-hidden rounded-xl border'>
-          <div className='bg-muted/40 grid grid-cols-[minmax(8rem,1fr)_7rem_7rem_7rem_6rem] gap-3 px-3 py-2 text-xs font-medium text-muted-foreground max-lg:hidden'>
-            <span>{getDimensionLabel(t, dimension)}</span>
-            <span className='text-right'>{t('Total tokens')}</span>
-            <span className='text-right'>{t('Requests')}</span>
-            <span className='text-right'>{t('Usage cost')}</span>
-            <span className='text-right'>{t('Cache hit rate')}</span>
-          </div>
-          {summaryQuery.isLoading ? (
-            <div className='space-y-2 p-3'>
-              <Skeleton className='h-9 w-full' />
-              <Skeleton className='h-9 w-full' />
-              <Skeleton className='h-9 w-full' />
-            </div>
-          ) : rows.length === 0 ? (
-            <div className='p-6 text-center text-sm text-muted-foreground'>
-              {t('No usage data in the selected range')}
-            </div>
-          ) : (
-            <div className='divide-y'>
-              {rows.map((row) => (
-                <div
-                  key={`${row.dimension}-${row.key}`}
-                  className='grid gap-2 px-3 py-3 text-sm lg:grid-cols-[minmax(8rem,1fr)_7rem_7rem_7rem_6rem] lg:gap-3'
-                >
-                  <div className='min-w-0'>
-                    <div className='truncate font-medium'>{row.label}</div>
-                    <div className='text-muted-foreground mt-0.5 truncate text-xs'>
-                      {row.key}
-                    </div>
-                  </div>
-                  <div className='flex justify-between gap-2 lg:block lg:text-right'>
-                    <span className='text-muted-foreground lg:hidden'>
-                      {t('Total tokens')}
-                    </span>
-                    <span className='font-mono tabular-nums'>
-                      {formatTokens(row.total_tokens ?? 0)}
-                    </span>
-                  </div>
-                  <div className='flex justify-between gap-2 lg:block lg:text-right'>
-                    <span className='text-muted-foreground lg:hidden'>
-                      {t('Requests')}
-                    </span>
-                    <span className='font-mono tabular-nums'>
-                      {formatNumber(row.request_count ?? 0)}
-                    </span>
-                  </div>
-                  <div className='flex justify-between gap-2 lg:block lg:text-right'>
-                    <span className='text-muted-foreground lg:hidden'>
-                      {t('Usage cost')}
-                    </span>
-                    <span className='font-mono tabular-nums'>
-                      {formatQuota(row.quota ?? 0)}
-                    </span>
-                  </div>
-                  <div className='flex justify-between gap-2 lg:block lg:text-right'>
-                    <span className='text-muted-foreground lg:hidden'>
-                      {t('Cache hit rate')}
-                    </span>
-                    <span className='font-mono tabular-nums'>
-                      {formatRate(row.cache_hit_rate ?? 0)}
-                    </span>
-                  </div>
+        <Collapsible open={detailsOpen} onOpenChange={setDetailsOpen}>
+          <CollapsibleTrigger className='border-input bg-background hover:bg-accent hover:text-accent-foreground flex h-9 w-full items-center justify-between rounded-md border px-4 py-2 text-sm font-medium shadow-xs transition-colors'>
+              <span>
+                {t('Usage details')} ({formatNumber(rows.length)})
+              </span>
+              <ChevronDown
+                data-icon='inline-end'
+                className={`transition-transform ${detailsOpen ? 'rotate-180' : ''}`}
+              />
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className='mt-3 overflow-hidden rounded-xl border'>
+              <div className='bg-muted/40 grid grid-cols-[minmax(8rem,1fr)_7rem_7rem_7rem_6rem] gap-3 px-3 py-2 text-xs font-medium text-muted-foreground max-lg:hidden'>
+                <span>{getDimensionLabel(t, dimension)}</span>
+                <span className='text-right'>{t('Total tokens')}</span>
+                <span className='text-right'>{t('Requests')}</span>
+                <span className='text-right'>{t('Usage cost')}</span>
+                <span className='text-right'>{t('Cache hit rate')}</span>
+              </div>
+              {summaryQuery.isLoading ? (
+                <div className='space-y-2 p-3'>
+                  <Skeleton className='h-9 w-full' />
+                  <Skeleton className='h-9 w-full' />
+                  <Skeleton className='h-9 w-full' />
                 </div>
-              ))}
+              ) : rows.length === 0 ? (
+                <div className='p-6 text-center text-sm text-muted-foreground'>
+                  {t('No usage data in the selected range')}
+                </div>
+              ) : (
+                <div className='max-h-80 divide-y overflow-y-auto'>
+                  {rows.map((row) => (
+                    <div
+                      key={`${row.dimension}-${row.key}`}
+                      className='grid gap-2 px-3 py-3 text-sm lg:grid-cols-[minmax(8rem,1fr)_7rem_7rem_7rem_6rem] lg:gap-3'
+                    >
+                      <div className='min-w-0'>
+                        <div className='truncate font-medium'>{row.label}</div>
+                        <div className='text-muted-foreground mt-0.5 truncate text-xs'>
+                          {row.key}
+                        </div>
+                      </div>
+                      <div className='flex justify-between gap-2 lg:block lg:text-right'>
+                        <span className='text-muted-foreground lg:hidden'>
+                          {t('Total tokens')}
+                        </span>
+                        <span className='font-mono tabular-nums'>
+                          {formatTokens(row.total_tokens ?? 0)}
+                        </span>
+                      </div>
+                      <div className='flex justify-between gap-2 lg:block lg:text-right'>
+                        <span className='text-muted-foreground lg:hidden'>
+                          {t('Requests')}
+                        </span>
+                        <span className='font-mono tabular-nums'>
+                          {formatNumber(row.request_count ?? 0)}
+                        </span>
+                      </div>
+                      <div className='flex justify-between gap-2 lg:block lg:text-right'>
+                        <span className='text-muted-foreground lg:hidden'>
+                          {t('Usage cost')}
+                        </span>
+                        <span className='font-mono tabular-nums'>
+                          {formatQuota(row.quota ?? 0)}
+                        </span>
+                      </div>
+                      <div className='flex justify-between gap-2 lg:block lg:text-right'>
+                        <span className='text-muted-foreground lg:hidden'>
+                          {t('Cache hit rate')}
+                        </span>
+                        <span className='font-mono tabular-nums'>
+                          {formatRate(row.cache_hit_rate ?? 0)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </CollapsibleContent>
+        </Collapsible>
       </div>
     </div>
   )
