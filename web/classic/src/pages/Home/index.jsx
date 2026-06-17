@@ -26,6 +26,7 @@ import { marked } from 'marked';
 import { useTranslation } from 'react-i18next';
 import NoticeModal from '../../components/layout/NoticeModal';
 import ClassicAnnouncementHome from './ClassicAnnouncementHome';
+import '../../components/common/markdown/markdown.css';
 
 const parseHomeInfoCards = (value) => {
   if (!value || !value.trim()) return undefined;
@@ -159,7 +160,7 @@ const Home = () => {
             />
           ) : (
             <div
-              className='mt-[60px]'
+              className='markdown-body mt-[60px]'
               dangerouslySetInnerHTML={{ __html: homePageContent }}
             />
           )}

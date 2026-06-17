@@ -26,6 +26,7 @@ import {
   IllustrationConstructionDark,
 } from '@douyinfe/semi-illustrations';
 import ScrollableContainer from '../common/ui/ScrollableContainer';
+import '../common/markdown/markdown.css';
 
 const AnnouncementsPanel = ({
   announcementData,
@@ -89,7 +90,7 @@ const AnnouncementsPanel = ({
                   extra={
                     item.extra ? (
                       <div
-                        className='text-xs text-gray-500'
+                        className='markdown-body text-xs text-gray-500'
                         dangerouslySetInnerHTML={{ __html: htmlExtra }}
                       />
                     ) : null
@@ -97,6 +98,7 @@ const AnnouncementsPanel = ({
                 >
                   <div>
                     <div
+                      className='markdown-body'
                       dangerouslySetInnerHTML={{
                         __html: marked.parse(item.content || ''),
                       }}

@@ -35,6 +35,7 @@ import {
 } from '@douyinfe/semi-illustrations';
 import { StatusContext } from '../../context/Status';
 import { Bell, Megaphone } from 'lucide-react';
+import '../common/markdown/markdown.css';
 
 const NoticeModal = ({
   visible,
@@ -144,7 +145,7 @@ const NoticeModal = ({
     return (
       <div
         dangerouslySetInnerHTML={{ __html: noticeContent }}
-        className='notice-content-scroll max-h-[55vh] overflow-y-auto pr-2'
+        className='markdown-body notice-content-scroll max-h-[55vh] overflow-y-auto pr-2'
       />
     );
   };
@@ -180,7 +181,7 @@ const NoticeModal = ({
                 extra={
                   item.extra ? (
                     <div
-                      className='text-xs text-gray-500'
+                      className='markdown-body text-xs text-gray-500'
                       dangerouslySetInnerHTML={{ __html: htmlExtra }}
                     />
                   ) : null
@@ -189,7 +190,7 @@ const NoticeModal = ({
               >
                 <div>
                   <div
-                    className={item.isUnread ? 'shine-text' : ''}
+                    className={`markdown-body ${item.isUnread ? 'shine-text' : ''}`}
                     dangerouslySetInnerHTML={{ __html: htmlContent }}
                   />
                 </div>
