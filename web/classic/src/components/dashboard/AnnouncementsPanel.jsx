@@ -28,6 +28,12 @@ import {
 import ScrollableContainer from '../common/ui/ScrollableContainer';
 import '../common/markdown/markdown.css';
 
+const parseMarkdown = (content) =>
+  marked.parse(content || '', {
+    gfm: true,
+    breaks: true,
+  });
+
 const AnnouncementsPanel = ({
   announcementData,
   announcementLegendData,
@@ -81,7 +87,7 @@ const AnnouncementsPanel = ({
         {announcementData.length > 0 ? (
           <Timeline mode='left'>
             {announcementData.map((item, idx) => {
-              const htmlExtra = item.extra ? marked.parse(item.extra) : '';
+              const htmlExtra = item.extra ? parseMarkdown(item.extra) : '';
               return (
                 <Timeline.Item
                   key={idx}
@@ -100,7 +106,7 @@ const AnnouncementsPanel = ({
                     <div
                       className='markdown-body'
                       dangerouslySetInnerHTML={{
-                        __html: marked.parse(item.content || ''),
+                        __html: parseMarkdown(item.content),
                       }}
                     />
                   </div>

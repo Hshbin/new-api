@@ -37,6 +37,12 @@ import { StatusContext } from '../../context/Status';
 import { Bell, Megaphone } from 'lucide-react';
 import '../common/markdown/markdown.css';
 
+const parseMarkdown = (content) =>
+  marked.parse(content || '', {
+    gfm: true,
+    breaks: true,
+  });
+
 const NoticeModal = ({
   visible,
   onClose,
@@ -90,7 +96,7 @@ const NoticeModal = ({
       const { success, message, data } = res.data;
       if (success) {
         if (data !== '') {
-          const htmlNotice = marked.parse(data);
+          const htmlNotice = parseMarkdown(data);
           setNoticeContent(htmlNotice);
         } else {
           setNoticeContent('');
@@ -171,8 +177,8 @@ const NoticeModal = ({
       <div className='max-h-[55vh] overflow-y-auto pr-2 card-content-scroll'>
         <Timeline mode='left'>
           {processedAnnouncements.map((item, idx) => {
-            const htmlContent = marked.parse(item.content || '');
-            const htmlExtra = item.extra ? marked.parse(item.extra) : '';
+            const htmlContent = parseMarkdown(item.content);
+            const htmlExtra = item.extra ? parseMarkdown(item.extra) : '';
             return (
               <Timeline.Item
                 key={idx}

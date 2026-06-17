@@ -62,6 +62,10 @@ const defaultModelSettings: ModelSettings = {
   AutoGroups: '',
   DefaultUseAutoGroup: false,
   'group_ratio_setting.group_special_usable_group': '{}',
+  'recharge_tier_setting.enabled': true,
+  'recharge_tier_setting.base_group': 'default',
+  'recharge_tier_setting.rules':
+    '[{"threshold":100,"group":"vip1","ratio":0.225},{"threshold":500,"group":"vip2","ratio":0.2}]',
   'channel_affinity_setting.enabled': false,
   'channel_affinity_setting.switch_on_success': true,
   'channel_affinity_setting.keep_on_channel_disabled': false,

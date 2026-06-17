@@ -175,6 +175,9 @@ export type ModelSettings = {
   AutoGroups: string
   DefaultUseAutoGroup: boolean
   'group_ratio_setting.group_special_usable_group': string
+  'recharge_tier_setting.enabled': boolean
+  'recharge_tier_setting.base_group': string
+  'recharge_tier_setting.rules': string
   'channel_affinity_setting.enabled': boolean
   'channel_affinity_setting.switch_on_success': boolean
   'channel_affinity_setting.keep_on_channel_disabled': boolean
@@ -219,6 +222,9 @@ export type BillingSettings = {
   AutoGroups: string
   DefaultUseAutoGroup: boolean
   'group_ratio_setting.group_special_usable_group': string
+  'recharge_tier_setting.enabled': boolean
+  'recharge_tier_setting.base_group': string
+  'recharge_tier_setting.rules': string
   PayAddress: string
   EpayId: string
   EpayKey: string

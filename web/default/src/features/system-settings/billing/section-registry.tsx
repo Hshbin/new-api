@@ -48,6 +48,9 @@ const getGroupDefaults = (settings: BillingSettings) => ({
   DefaultUseAutoGroup: settings.DefaultUseAutoGroup,
   GroupSpecialUsableGroup:
     settings['group_ratio_setting.group_special_usable_group'],
+  RechargeTierEnabled: settings['recharge_tier_setting.enabled'],
+  RechargeTierBaseGroup: settings['recharge_tier_setting.base_group'],
+  RechargeTierRules: settings['recharge_tier_setting.rules'],
 })
 
 const BILLING_SECTIONS = [

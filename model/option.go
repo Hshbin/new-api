@@ -193,6 +193,9 @@ func loadOptionsFromDatabase() {
 			common.SysLog("failed to update option map: " + err.Error())
 		}
 	}
+	common.OptionMapRWMutex.Lock()
+	SyncRechargeTierGroupRatios()
+	common.OptionMapRWMutex.Unlock()
 }
 
 func SyncOptions(frequency int) {
@@ -523,6 +526,9 @@ func updateOptionMap(key string, value string) (err error) {
 		err = ratio_setting.UpdateModelRatioByJSONString(value)
 	case "GroupRatio":
 		err = ratio_setting.UpdateGroupRatioByJSONString(value)
+		if err == nil {
+			SyncRechargeTierGroupRatios()
+		}
 	case "GroupGroupRatio":
 		err = ratio_setting.UpdateGroupGroupRatioByJSONString(value)
 	case "UserUsableGroups":
@@ -601,6 +607,8 @@ func handleConfigUpdate(key, value string) bool {
 	} else if configName == "billing_setting" {
 		InvalidatePricingCache()
 		ratio_setting.InvalidateExposedDataCache()
+	} else if configName == "recharge_tier_setting" {
+		SyncRechargeTierGroupRatios()
 	} else if configName == "theme" {
 		system_setting.UpdateAndSyncTheme()
 	}

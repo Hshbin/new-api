@@ -28,6 +28,12 @@ import NoticeModal from '../../components/layout/NoticeModal';
 import ClassicAnnouncementHome from './ClassicAnnouncementHome';
 import '../../components/common/markdown/markdown.css';
 
+const parseMarkdown = (content) =>
+  marked.parse(content || '', {
+    gfm: true,
+    breaks: true,
+  });
+
 const parseHomeInfoCards = (value) => {
   if (!value || !value.trim()) return undefined;
 
@@ -76,7 +82,7 @@ const Home = () => {
     if (success) {
       let content = decodeHtmlEntities(data || '');
       if (content && !content.startsWith('https://') && !looksLikeHtml(content)) {
-        content = marked.parse(content);
+        content = parseMarkdown(content);
       }
       setHomePageContent(content);
       if (content) {
