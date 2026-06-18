@@ -71,6 +71,8 @@ type GroupFormValues = {
   RechargeTierEnabled: boolean
   RechargeTierBaseGroup: string
   RechargeTierRules: string
+  GroupRatioRestoreEnabled: boolean
+  GroupRatioRestoreRules: string
 }
 
 type GroupRatioFormProps = {
@@ -181,6 +183,8 @@ export const GroupRatioForm = memo(function GroupRatioForm({
             />
 
             <RechargeTierFields form={form} />
+
+            <GroupRatioRestoreFields form={form} />
           </div>
         ) : (
           <SettingsForm onSubmit={form.handleSubmit(onSave)}>
@@ -325,6 +329,8 @@ export const GroupRatioForm = memo(function GroupRatioForm({
             />
 
             <RechargeTierFields form={form} />
+
+            <GroupRatioRestoreFields form={form} />
           </SettingsForm>
         )}
       </Form>
@@ -394,6 +400,58 @@ function RechargeTierFields({
                 'JSON array sorted by threshold. The threshold is measured in quota units converted by QuotaPerUnit.'
               )}
               {` [{"threshold":100,"group":"vip1","ratio":0.225},{"threshold":500,"group":"vip2","ratio":0.2}]`}
+            </FormDescription>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    </>
+  )
+}
+
+function GroupRatioRestoreFields({
+  form,
+}: {
+  form: UseFormReturn<GroupFormValues>
+}) {
+  const { t } = useTranslation()
+
+  return (
+    <>
+      <FormField
+        control={form.control}
+        name='GroupRatioRestoreEnabled'
+        render={({ field }) => (
+          <SettingsSwitchItem>
+            <SettingsSwitchContent>
+              <FormLabel>{t('Scheduled group ratio restore')}</FormLabel>
+              <FormDescription>
+                {t(
+                  'When enabled, expired restore rules automatically write preset ratios back to GroupRatio and remove themselves.'
+                )}
+              </FormDescription>
+            </SettingsSwitchContent>
+            <FormControl>
+              <Switch checked={field.value} onCheckedChange={field.onChange} />
+            </FormControl>
+          </SettingsSwitchItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name='GroupRatioRestoreRules'
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>{t('Group ratio restore rules')}</FormLabel>
+            <FormControl>
+              <Textarea rows={6} {...field} />
+            </FormControl>
+            <FormDescription>
+              {t(
+                'JSON array. restore_at is a Unix timestamp in seconds. Example:'
+              )}
+              {` [{"group":"vip","ratio":1,"restore_at":1790000000}]`}
             </FormDescription>
             <FormMessage />
           </FormItem>

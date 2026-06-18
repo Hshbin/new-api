@@ -58,6 +58,8 @@ const OPTION_KEYS = [
   'recharge_tier_setting.enabled',
   'recharge_tier_setting.base_group',
   'recharge_tier_setting.rules',
+  'group_ratio_restore_setting.enabled',
+  'group_ratio_restore_setting.rules',
   'AutoGroups',
   'DefaultUseAutoGroup',
 ];
@@ -86,6 +88,8 @@ export default function GroupRatioSettings(props) {
     'recharge_tier_setting.base_group': 'default',
     'recharge_tier_setting.rules':
       '[{"threshold":100,"group":"vip1","ratio":0.225},{"threshold":500,"group":"vip2","ratio":0.2}]',
+    'group_ratio_restore_setting.enabled': true,
+    'group_ratio_restore_setting.rules': '[]',
     AutoGroups: '',
     DefaultUseAutoGroup: false,
   });
@@ -320,6 +324,55 @@ export default function GroupRatioSettings(props) {
           </Col>
         </Row>
       </Form.Section>
+
+      <Form.Section text={t('分组倍率定时恢复')}>
+        <Text type='tertiary' size='small' style={{ display: 'block', marginBottom: 12 }}>
+          {t('用于临时降低倍率后，在指定 Unix 时间戳自动恢复到预设倍率。到点执行后规则会自动移除。')}
+        </Text>
+        <Row gutter={16}>
+          <Col xs={24} sm={12} md={8} lg={8} xl={8}>
+            <Form.Slot label={t('启用定时恢复')}>
+              <Switch
+                checked={!!inputs['group_ratio_restore_setting.enabled']}
+                size='default'
+                checkedText='开'
+                uncheckedText='关'
+                onChange={(value) =>
+                  setInputs((prev) => ({
+                    ...prev,
+                    'group_ratio_restore_setting.enabled': value,
+                  }))
+                }
+              />
+            </Form.Slot>
+          </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col xs={24} sm={16}>
+            <Form.TextArea
+              label={t('恢复规则')}
+              field='group_ratio_restore_setting.rules'
+              value={inputs['group_ratio_restore_setting.rules']}
+              autosize={{ minRows: 4, maxRows: 10 }}
+              trigger='blur'
+              stopValidateWithError
+              rules={[
+                {
+                  validator: (rule, value) => verifyJSON(value),
+                  message: t('不是合法的 JSON 字符串'),
+                },
+              ]}
+              extraText={t('格式：[{ "group": "vip", "ratio": 1, "restore_at": 1790000000 }]，restore_at 为 Unix 秒。')}
+              onChange={(value) =>
+                setInputs((prev) => ({
+                  ...prev,
+                  'group_ratio_restore_setting.rules': value,
+                }))
+              }
+            />
+          </Col>
+        </Row>
+      </Form.Section>
     </Form>
   );
 
@@ -534,6 +587,44 @@ export default function GroupRatioSettings(props) {
                 setInputs((prev) => ({
                   ...prev,
                   'recharge_tier_setting.rules': value,
+                }))
+              }
+            />
+          </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col span={16}>
+            <Form.Switch
+              label={t('启用分组倍率定时恢复')}
+              field={'group_ratio_restore_setting.enabled'}
+              onChange={(value) =>
+                setInputs((prev) => ({
+                  ...prev,
+                  'group_ratio_restore_setting.enabled': value,
+                }))
+              }
+            />
+          </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col xs={24} sm={16}>
+            <Form.TextArea
+              label={t('分组倍率定时恢复规则')}
+              field={'group_ratio_restore_setting.rules'}
+              placeholder='[{"group":"vip","ratio":1,"restore_at":1790000000}]'
+              autosize={{ minRows: 4, maxRows: 10 }}
+              trigger='blur'
+              stopValidateWithError
+              rules={[
+                {
+                  validator: (rule, value) => verifyJSON(value),
+                  message: t('不是合法的 JSON 字符串'),
+                },
+              ]}
+              onChange={(value) =>
+                setInputs((prev) => ({
+                  ...prev,
+                  'group_ratio_restore_setting.rules': value,
                 }))
               }
             />

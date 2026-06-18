@@ -52,6 +52,8 @@ const RatioSetting = () => {
     'recharge_tier_setting.base_group': 'default',
     'recharge_tier_setting.rules':
       '[{"threshold":100,"group":"vip1","ratio":0.225},{"threshold":500,"group":"vip2","ratio":0.2}]',
+    'group_ratio_restore_setting.enabled': true,
+    'group_ratio_restore_setting.rules': '[]',
   });
 
   const [loading, setLoading] = useState(false);
@@ -74,6 +76,7 @@ const RatioSetting = () => {
             'DefaultUseAutoGroup',
             'ExposeRatioEnabled',
             'recharge_tier_setting.enabled',
+            'group_ratio_restore_setting.enabled',
           ].includes(item.key)
         ) {
           newInputs[item.key] = toBoolean(item.value);
