@@ -36,7 +36,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
 import {
   Sheet,
   SheetContent,
@@ -68,9 +67,6 @@ type GroupFormValues = {
   AutoGroups: string
   DefaultUseAutoGroup: boolean
   GroupSpecialUsableGroup: string
-  RechargeTierEnabled: boolean
-  RechargeTierBaseGroup: string
-  RechargeTierRules: string
   GroupRatioRestoreEnabled: boolean
   GroupRatioRestoreRules: string
 }
@@ -181,8 +177,6 @@ export const GroupRatioForm = memo(function GroupRatioForm({
                 </SettingsSwitchItem>
               )}
             />
-
-            <RechargeTierFields form={form} />
 
             <GroupRatioRestoreFields form={form} />
           </div>
@@ -328,8 +322,6 @@ export const GroupRatioForm = memo(function GroupRatioForm({
               )}
             />
 
-            <RechargeTierFields form={form} />
-
             <GroupRatioRestoreFields form={form} />
           </SettingsForm>
         )}
@@ -337,77 +329,6 @@ export const GroupRatioForm = memo(function GroupRatioForm({
     </div>
   )
 })
-
-function RechargeTierFields({
-  form,
-}: {
-  form: UseFormReturn<GroupFormValues>
-}) {
-  const { t } = useTranslation()
-
-  return (
-    <>
-      <FormField
-        control={form.control}
-        name='RechargeTierEnabled'
-        render={({ field }) => (
-          <SettingsSwitchItem>
-            <SettingsSwitchContent>
-              <FormLabel>{t('Recharge tier auto upgrade')}</FormLabel>
-              <FormDescription>
-                {t(
-                  'When enabled, redemption codes and administrator quota additions can automatically move users into configured groups.'
-                )}
-              </FormDescription>
-            </SettingsSwitchContent>
-            <FormControl>
-              <Switch checked={field.value} onCheckedChange={field.onChange} />
-            </FormControl>
-          </SettingsSwitchItem>
-        )}
-      />
-
-      <FormField
-        control={form.control}
-        name='RechargeTierBaseGroup'
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>{t('Recharge tier base group')}</FormLabel>
-            <FormControl>
-              <Input {...field} />
-            </FormControl>
-            <FormDescription>
-              {t(
-                'Only users in this base group or an auto-managed tier group will be changed automatically.'
-              )}
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      <FormField
-        control={form.control}
-        name='RechargeTierRules'
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>{t('Recharge tier rules')}</FormLabel>
-            <FormControl>
-              <Textarea rows={6} {...field} />
-            </FormControl>
-            <FormDescription>
-              {t(
-                'JSON array sorted by threshold. The threshold is measured in quota units converted by QuotaPerUnit.'
-              )}
-              {` [{"threshold":100,"group":"vip1","ratio":0.225},{"threshold":500,"group":"vip2","ratio":0.2}]`}
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-    </>
-  )
-}
 
 function GroupRatioRestoreFields({
   form,

@@ -58,10 +58,6 @@ const defaultBillingSettings: BillingSettings = {
   AutoGroups: '',
   DefaultUseAutoGroup: false,
   'group_ratio_setting.group_special_usable_group': '{}',
-  'recharge_tier_setting.enabled': true,
-  'recharge_tier_setting.base_group': 'default',
-  'recharge_tier_setting.rules':
-    '[{"threshold":100,"group":"vip1","ratio":0.225},{"threshold":500,"group":"vip2","ratio":0.2}]',
   'group_ratio_restore_setting.enabled': true,
   'group_ratio_restore_setting.rules': '[]',
   PayAddress: '',

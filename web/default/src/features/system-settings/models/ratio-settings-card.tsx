@@ -124,25 +124,6 @@ const createGroupSchema = (t: Translate) =>
     }),
     DefaultUseAutoGroup: z.boolean(),
     GroupSpecialUsableGroup: createJsonStringField(t),
-    RechargeTierEnabled: z.boolean(),
-    RechargeTierBaseGroup: z.string().min(1, t('Value is required')),
-    RechargeTierRules: createJsonStringField(t, {
-      predicate: (parsed) =>
-        Array.isArray(parsed) &&
-        parsed.every(
-          (item) =>
-            item &&
-            typeof item === 'object' &&
-            typeof item.threshold === 'number' &&
-            item.threshold >= 0 &&
-            typeof item.group === 'string' &&
-            item.group.trim() !== '' &&
-            typeof item.ratio === 'number' &&
-            item.ratio >= 0
-        ),
-      predicateMessage:
-        'Expected an array of recharge tier rules with threshold, group, and ratio',
-    }),
     GroupRatioRestoreEnabled: z.boolean(),
     GroupRatioRestoreRules: createJsonStringField(t, {
       predicate: (parsed) =>
@@ -232,9 +213,6 @@ export function RatioSettingsCard({
     GroupSpecialUsableGroup: normalizeJsonString(
       groupDefaults.GroupSpecialUsableGroup
     ),
-    RechargeTierEnabled: groupDefaults.RechargeTierEnabled,
-    RechargeTierBaseGroup: groupDefaults.RechargeTierBaseGroup,
-    RechargeTierRules: normalizeJsonString(groupDefaults.RechargeTierRules),
     GroupRatioRestoreEnabled: groupDefaults.GroupRatioRestoreEnabled,
     GroupRatioRestoreRules: normalizeJsonString(
       groupDefaults.GroupRatioRestoreRules
@@ -276,7 +254,6 @@ export function RatioSettingsCard({
       GroupSpecialUsableGroup: formatJsonForTextarea(
         groupDefaults.GroupSpecialUsableGroup
       ),
-      RechargeTierRules: formatJsonForTextarea(groupDefaults.RechargeTierRules),
       GroupRatioRestoreRules: formatJsonForTextarea(
         groupDefaults.GroupRatioRestoreRules
       ),
@@ -329,9 +306,6 @@ export function RatioSettingsCard({
       GroupSpecialUsableGroup: normalizeJsonString(
         groupDefaults.GroupSpecialUsableGroup
       ),
-      RechargeTierEnabled: groupDefaults.RechargeTierEnabled,
-      RechargeTierBaseGroup: groupDefaults.RechargeTierBaseGroup,
-      RechargeTierRules: normalizeJsonString(groupDefaults.RechargeTierRules),
       GroupRatioRestoreEnabled: groupDefaults.GroupRatioRestoreEnabled,
       GroupRatioRestoreRules: normalizeJsonString(
         groupDefaults.GroupRatioRestoreRules
@@ -348,7 +322,6 @@ export function RatioSettingsCard({
       GroupSpecialUsableGroup: formatJsonForTextarea(
         groupDefaults.GroupSpecialUsableGroup
       ),
-      RechargeTierRules: formatJsonForTextarea(groupDefaults.RechargeTierRules),
       GroupRatioRestoreRules: formatJsonForTextarea(
         groupDefaults.GroupRatioRestoreRules
       ),
@@ -410,9 +383,6 @@ export function RatioSettingsCard({
         GroupSpecialUsableGroup: normalizeJsonString(
           values.GroupSpecialUsableGroup
         ),
-        RechargeTierEnabled: values.RechargeTierEnabled,
-        RechargeTierBaseGroup: values.RechargeTierBaseGroup,
-        RechargeTierRules: normalizeJsonString(values.RechargeTierRules),
         GroupRatioRestoreEnabled: values.GroupRatioRestoreEnabled,
         GroupRatioRestoreRules: normalizeJsonString(
           values.GroupRatioRestoreRules
@@ -423,9 +393,6 @@ export function RatioSettingsCard({
       const apiKeyMap: Record<string, string> = {
         GroupSpecialUsableGroup:
           'group_ratio_setting.group_special_usable_group',
-        RechargeTierEnabled: 'recharge_tier_setting.enabled',
-        RechargeTierBaseGroup: 'recharge_tier_setting.base_group',
-        RechargeTierRules: 'recharge_tier_setting.rules',
         GroupRatioRestoreEnabled: 'group_ratio_restore_setting.enabled',
         GroupRatioRestoreRules: 'group_ratio_restore_setting.rules',
       }

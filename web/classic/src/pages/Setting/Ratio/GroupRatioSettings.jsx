@@ -55,9 +55,6 @@ const OPTION_KEYS = [
   'UserUsableGroups',
   'GroupGroupRatio',
   'group_ratio_setting.group_special_usable_group',
-  'recharge_tier_setting.enabled',
-  'recharge_tier_setting.base_group',
-  'recharge_tier_setting.rules',
   'group_ratio_restore_setting.enabled',
   'group_ratio_restore_setting.rules',
   'AutoGroups',
@@ -84,10 +81,6 @@ export default function GroupRatioSettings(props) {
     UserUsableGroups: '',
     GroupGroupRatio: '',
     'group_ratio_setting.group_special_usable_group': '',
-    'recharge_tier_setting.enabled': true,
-    'recharge_tier_setting.base_group': 'default',
-    'recharge_tier_setting.rules':
-      '[{"threshold":100,"group":"vip1","ratio":0.225},{"threshold":500,"group":"vip2","ratio":0.2}]',
     'group_ratio_restore_setting.enabled': true,
     'group_ratio_restore_setting.rules': '[]',
     AutoGroups: '',
@@ -260,69 +253,6 @@ export default function GroupRatioSettings(props) {
           groupNames={groupNames}
           onChange={handleSpecialUsableChange}
         />
-      </Form.Section>
-
-      <Form.Section text={t('累计充值分级')}>
-        <Text type='tertiary' size='small' style={{ display: 'block', marginBottom: 12 }}>
-          {t('根据兑换码和管理员手动增加额度的累计值，自动调整用户分组并同步分组倍率。')}
-        </Text>
-        <Row gutter={16}>
-          <Col xs={24} sm={12} md={8} lg={8} xl={8}>
-            <Form.Slot label={t('启用自动分级')}>
-              <Switch
-                checked={!!inputs['recharge_tier_setting.enabled']}
-                size='default'
-                checkedText='开'
-                uncheckedText='关'
-                onChange={(value) =>
-                  setInputs((prev) => ({
-                    ...prev,
-                    'recharge_tier_setting.enabled': value,
-                  }))
-                }
-              />
-            </Form.Slot>
-          </Col>
-          <Col xs={24} sm={12} md={8} lg={8} xl={8}>
-            <Form.Input
-              label={t('基础分组')}
-              field='recharge_tier_setting.base_group'
-              value={inputs['recharge_tier_setting.base_group']}
-              placeholder='default'
-              onChange={(value) =>
-                setInputs((prev) => ({
-                  ...prev,
-                  'recharge_tier_setting.base_group': value,
-                }))
-              }
-            />
-          </Col>
-        </Row>
-        <Row gutter={16}>
-          <Col xs={24} sm={16}>
-            <Form.TextArea
-              label={t('分级规则')}
-              field='recharge_tier_setting.rules'
-              value={inputs['recharge_tier_setting.rules']}
-              autosize={{ minRows: 4, maxRows: 10 }}
-              trigger='blur'
-              stopValidateWithError
-              rules={[
-                {
-                  validator: (rule, value) => verifyJSON(value),
-                  message: t('不是合法的 JSON 字符串'),
-                },
-              ]}
-              extraText={t('格式：[{ "threshold": 100, "group": "vip1", "ratio": 0.225 }]，累计值必须大于 threshold 才会进入对应分组。')}
-              onChange={(value) =>
-                setInputs((prev) => ({
-                  ...prev,
-                  'recharge_tier_setting.rules': value,
-                }))
-              }
-            />
-          </Col>
-        </Row>
       </Form.Section>
 
       <Form.Section text={t('分组倍率定时恢复')}>
@@ -534,59 +464,6 @@ export default function GroupRatioSettings(props) {
                 setInputs((prev) => ({
                   ...prev,
                   DefaultUseAutoGroup: value,
-                }))
-              }
-            />
-          </Col>
-        </Row>
-        <Row gutter={16}>
-          <Col span={16}>
-            <Form.Switch
-              label={t('启用累计充值自动分级')}
-              field={'recharge_tier_setting.enabled'}
-              onChange={(value) =>
-                setInputs((prev) => ({
-                  ...prev,
-                  'recharge_tier_setting.enabled': value,
-                }))
-              }
-            />
-          </Col>
-        </Row>
-        <Row gutter={16}>
-          <Col xs={24} sm={16}>
-            <Form.Input
-              label={t('累计充值分级基础分组')}
-              field={'recharge_tier_setting.base_group'}
-              placeholder='default'
-              onChange={(value) =>
-                setInputs((prev) => ({
-                  ...prev,
-                  'recharge_tier_setting.base_group': value,
-                }))
-              }
-            />
-          </Col>
-        </Row>
-        <Row gutter={16}>
-          <Col xs={24} sm={16}>
-            <Form.TextArea
-              label={t('累计充值分级规则')}
-              field={'recharge_tier_setting.rules'}
-              placeholder='[{"threshold":100,"group":"vip1","ratio":0.225},{"threshold":500,"group":"vip2","ratio":0.2}]'
-              autosize={{ minRows: 4, maxRows: 10 }}
-              trigger='blur'
-              stopValidateWithError
-              rules={[
-                {
-                  validator: (rule, value) => verifyJSON(value),
-                  message: t('不是合法的 JSON 字符串'),
-                },
-              ]}
-              onChange={(value) =>
-                setInputs((prev) => ({
-                  ...prev,
-                  'recharge_tier_setting.rules': value,
                 }))
               }
             />

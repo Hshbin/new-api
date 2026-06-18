@@ -232,15 +232,6 @@ func UpdateOption(c *gin.Context) {
 			})
 			return
 		}
-	case "recharge_tier_setting.rules":
-		err = setting.CheckRechargeTierRules(option.Value.(string))
-		if err != nil {
-			c.JSON(http.StatusOK, gin.H{
-				"success": false,
-				"message": err.Error(),
-			})
-			return
-		}
 	case "group_ratio_restore_setting.rules":
 		err = setting.CheckGroupRatioRestoreRules(option.Value.(string))
 		if err != nil {

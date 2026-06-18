@@ -1004,7 +1004,6 @@ func ManageUser(c *gin.Context) {
 				common.ApiError(c, err)
 				return
 			}
-			model.RecordAdminRechargeCredit(user.Id, req.Value, model.RechargeCreditSourceAdminAdd)
 			recordManageAuditFor(c, user.Id, "user.quota_add", map[string]interface{}{
 				"quota": logger.LogQuota(req.Value),
 			})
@@ -1025,9 +1024,6 @@ func ManageUser(c *gin.Context) {
 			if err := model.DB.Model(&model.User{}).Where("id = ?", user.Id).Update("quota", req.Value).Error; err != nil {
 				common.ApiError(c, err)
 				return
-			}
-			if req.Value > oldQuota {
-				model.RecordAdminRechargeCredit(user.Id, req.Value-oldQuota, model.RechargeCreditSourceAdminOverride)
 			}
 			recordManageAuditFor(c, user.Id, "user.quota_override", map[string]interface{}{
 				"from": logger.LogQuota(oldQuota),
