@@ -57,6 +57,7 @@ import {
 } from '../components/settings-form-layout'
 import { SettingsPageActionsPortal } from '../components/settings-page-context'
 import { GroupRatioVisualEditor } from './group-ratio-visual-editor'
+import { GroupRatioRestoreEditor } from './group-ratio-restore-editor'
 import { GroupSpecialUsableRulesEditor } from './group-special-usable-editor'
 
 type GroupFormValues = {
@@ -178,7 +179,20 @@ export const GroupRatioForm = memo(function GroupRatioForm({
               )}
             />
 
-            <GroupRatioRestoreFields form={form} />
+            <GroupRatioRestoreEditor
+              enabled={form.watch('GroupRatioRestoreEnabled')}
+              rules={form.watch('GroupRatioRestoreRules')}
+              groupRatio={form.watch('GroupRatio')}
+              onEnabledChange={(enabled) =>
+                form.setValue('GroupRatioRestoreEnabled', enabled, {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                })
+              }
+              onRulesChange={(rules) =>
+                handleFieldChange('GroupRatioRestoreRules', rules)
+              }
+            />
           </div>
         ) : (
           <SettingsForm onSubmit={form.handleSubmit(onSave)}>

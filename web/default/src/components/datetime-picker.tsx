@@ -45,6 +45,7 @@ interface DateTimePickerProps {
   onChange?: (date: Date | undefined) => void
   placeholder?: string
   className?: string
+  showSeconds?: boolean
 }
 
 export function DateTimePicker({
@@ -52,6 +53,7 @@ export function DateTimePicker({
   onChange,
   placeholder,
   className,
+  showSeconds = false,
 }: DateTimePickerProps) {
   const { t, i18n } = useTranslation()
   const placeholderText = placeholder ?? t('Select date')
@@ -60,7 +62,9 @@ export function DateTimePicker({
   const [open, setOpen] = React.useState(false)
   const [date, setDate] = React.useState<Date | undefined>(value)
   const [month, setMonth] = React.useState<Date | undefined>(value)
-  const [time, setTime] = React.useState<string>('00:00')
+  const [time, setTime] = React.useState<string>(
+    showSeconds ? '00:00:00' : '00:00'
+  )
 
   React.useEffect(() => {
     setDate(value)
@@ -68,15 +72,19 @@ export function DateTimePicker({
     if (value) {
       const hours = value.getHours().toString().padStart(2, '0')
       const minutes = value.getMinutes().toString().padStart(2, '0')
-      setTime(`${hours}:${minutes}`)
+      const seconds = value.getSeconds().toString().padStart(2, '0')
+      setTime(
+        showSeconds ? `${hours}:${minutes}:${seconds}` : `${hours}:${minutes}`
+      )
     }
-  }, [value])
+  }, [showSeconds, value])
 
   const handleDateSelect = (selectedDate: Date | undefined) => {
     if (selectedDate) {
-      const [hours, minutes] = time.split(':').map(Number)
+      const [hours = 0, minutes = 0, seconds = 0] =
+        time.split(':').map(Number)
       const newDate = new Date(selectedDate)
-      newDate.setHours(hours, minutes, 0, 0)
+      newDate.setHours(hours, minutes, showSeconds ? seconds : 0, 0)
       setDate(newDate)
       setMonth(newDate)
       onChange?.(newDate)
@@ -93,9 +101,10 @@ export function DateTimePicker({
     setTime(newTime)
 
     if (date) {
-      const [hours, minutes] = newTime.split(':').map(Number)
+      const [hours = 0, minutes = 0, seconds = 0] =
+        newTime.split(':').map(Number)
       const newDate = new Date(date)
-      newDate.setHours(hours, minutes, 0, 0)
+      newDate.setHours(hours, minutes, showSeconds ? seconds : 0, 0)
       setDate(newDate)
       onChange?.(newDate)
     }
@@ -104,7 +113,7 @@ export function DateTimePicker({
   const handleClear = () => {
     setDate(undefined)
     setMonth(undefined)
-    setTime('00:00')
+    setTime(showSeconds ? '00:00:00' : '00:00')
     onChange?.(undefined)
   }
 
@@ -139,6 +148,7 @@ export function DateTimePicker({
       </Popover>
       <Input
         type='time'
+        step={showSeconds ? 1 : 60}
         value={time}
         onChange={handleTimeChange}
         className='w-32 appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none'
