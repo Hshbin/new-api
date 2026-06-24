@@ -78,9 +78,9 @@ jobs:
             calciumion/new-api
             ghcr.io/${{ env.GHCR_REPOSITORY }}
 
-      - name: Build & push single-arch (alpha to both registries)
-        id: build_alpha
-        if: env.CHANNEL == 'alpha'
+      - name: Build & push single-arch (alpha to both registries, cached)
+        id: build_alpha_cached
+        if: env.CHANNEL == 'alpha' && matrix.arch != 'arm64'
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
@@ -97,9 +97,26 @@ jobs:
           provenance: mode=max
           sbom: true
 
-      - name: Build & push single-arch (branch to GHCR)
-        id: build_ghcr
-        if: env.CHANNEL != 'alpha'
+      - name: Build & push single-arch (alpha to both registries, no cache)
+        id: build_alpha_nocache
+        if: env.CHANNEL == 'alpha' && matrix.arch == 'arm64'
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          push: true
+          tags: |
+            calciumion/new-api:${{ env.CHANNEL }}-${{ matrix.arch }}
+            calciumion/new-api:${{ steps.version.outputs.value }}-${{ matrix.arch }}
+            ghcr.io/${{ env.GHCR_REPOSITORY }}:${{ env.CHANNEL }}-${{ matrix.arch }}
+            ghcr.io/${{ env.GHCR_REPOSITORY }}:${{ steps.version.outputs.value }}-${{ matrix.arch }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: mode=max
+          sbom: true
+
+      - name: Build & push single-arch (branch to GHCR, cached)
+        id: build_ghcr_cached
+        if: env.CHANNEL != 'alpha' && matrix.arch != 'arm64'
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
@@ -114,36 +131,56 @@ jobs:
           provenance: mode=max
           sbom: true
 
+      - name: Build & push single-arch (branch to GHCR, no cache)
+        id: build_ghcr_nocache
+        if: env.CHANNEL != 'alpha' && matrix.arch == 'arm64'
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          push: true
+          tags: |
+            ghcr.io/${{ env.GHCR_REPOSITORY }}:${{ env.CHANNEL }}-${{ matrix.arch }}
+            ghcr.io/${{ env.GHCR_REPOSITORY }}:${{ steps.version.outputs.value }}-${{ matrix.arch }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: mode=max
+          sbom: true
+
       - name: Install cosign
         uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
 
       - name: Sign alpha images with cosign
         if: env.CHANNEL == 'alpha'
         run: |
-          cosign sign --yes calciumion/new-api@${{ steps.build_alpha.outputs.digest }}
-          cosign sign --yes ghcr.io/${{ env.GHCR_REPOSITORY }}@${{ steps.build_alpha.outputs.digest }}
+          DIGEST="${{ steps.build_alpha_cached.outputs.digest || steps.build_alpha_nocache.outputs.digest }}"
+          cosign sign --yes calciumion/new-api@${DIGEST}
+          cosign sign --yes ghcr.io/${{ env.GHCR_REPOSITORY }}@${DIGEST}
 
       - name: Sign GHCR image with cosign
         if: env.CHANNEL != 'alpha'
-        run: cosign sign --yes ghcr.io/${{ env.GHCR_REPOSITORY }}@${{ steps.build_ghcr.outputs.digest }}
+        run: |
+          DIGEST="${{ steps.build_ghcr_cached.outputs.digest || steps.build_ghcr_nocache.outputs.digest }}"
+          cosign sign --yes ghcr.io/${{ env.GHCR_REPOSITORY }}@${DIGEST}
 
       - name: Output alpha digest
         if: env.CHANNEL == 'alpha'
         run: |
+          DIGEST="${{ steps.build_alpha_cached.outputs.digest || steps.build_alpha_nocache.outputs.digest }}"
           echo "### Docker Image Digest (${{ matrix.arch }})" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "calciumion/new-api:${{ env.CHANNEL }}-${{ matrix.arch }}" >> $GITHUB_STEP_SUMMARY
           echo "ghcr.io/${{ env.GHCR_REPOSITORY }}:${{ env.CHANNEL }}-${{ matrix.arch }}" >> $GITHUB_STEP_SUMMARY
-          echo "${{ steps.build_alpha.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
+          echo "${DIGEST}" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Output GHCR digest
         if: env.CHANNEL != 'alpha'
         run: |
+          DIGEST="${{ steps.build_ghcr_cached.outputs.digest || steps.build_ghcr_nocache.outputs.digest }}"
           echo "### Docker Image Digest (${{ matrix.arch }})" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "ghcr.io/${{ env.GHCR_REPOSITORY }}:${{ env.CHANNEL }}-${{ matrix.arch }}" >> $GITHUB_STEP_SUMMARY
-          echo "${{ steps.build_ghcr.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
+          echo "${DIGEST}" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
 
   create_manifests:
