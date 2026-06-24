@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -587,6 +589,272 @@ type Stat struct {
 	Quota int `json:"quota"`
 	Rpm   int `json:"rpm"`
 	Tpm   int `json:"tpm"`
+}
+
+type UserUsageSummary struct {
+	Quota               int     `json:"quota"`
+	RequestCount        int64   `json:"request_count"`
+	PromptTokens        int64   `json:"prompt_tokens"`
+	CompletionTokens    int64   `json:"completion_tokens"`
+	TotalTokens         int64   `json:"total_tokens"`
+	CachedTokens        int64   `json:"cached_tokens"`
+	CacheWriteTokens    int64   `json:"cache_write_tokens"`
+	CacheHitRate        float64 `json:"cache_hit_rate"`
+	StartTimestamp      int64   `json:"start_timestamp"`
+	EndTimestamp        int64   `json:"end_timestamp"`
+}
+
+type UsageSummaryItem struct {
+	Dimension           string  `json:"dimension"`
+	Key                 string  `json:"key"`
+	Label               string  `json:"label"`
+	UserId              int     `json:"user_id,omitempty"`
+	TokenId             int     `json:"token_id,omitempty"`
+	Quota               int     `json:"quota"`
+	RequestCount        int64   `json:"request_count"`
+	PromptTokens        int64   `json:"prompt_tokens"`
+	CompletionTokens    int64   `json:"completion_tokens"`
+	TotalTokens         int64   `json:"total_tokens"`
+	CachedTokens        int64   `json:"cached_tokens"`
+	CacheWriteTokens    int64   `json:"cache_write_tokens"`
+	CacheHitRate        float64 `json:"cache_hit_rate"`
+}
+
+type UsageSummaryResult struct {
+	Dimension      string           `json:"dimension"`
+	StartTimestamp int64            `json:"start_timestamp"`
+	EndTimestamp   int64            `json:"end_timestamp"`
+	Total          UsageSummaryItem `json:"total"`
+	Items          []UsageSummaryItem  `json:"items"`
+}
+
+type usageSummaryLogRow struct {
+	Quota            int
+	PromptTokens     int
+	CompletionTokens int
+	UserId           int
+	Username         string
+	TokenId          int
+	TokenName        string
+	ModelName        string
+	Other            string
+}
+
+func mapInt64Value(data map[string]interface{}, key string) int64 {
+	value, ok := data[key]
+	if !ok || value == nil {
+		return 0
+	}
+	switch v := value.(type) {
+	case int:
+		return int64(v)
+	case int64:
+		return v
+	case float64:
+		return int64(v)
+	case float32:
+		return int64(v)
+	case string:
+		n, _ := strconv.ParseInt(strings.TrimSpace(v), 10, 64)
+		return n
+	default:
+		return 0
+	}
+}
+
+func cacheReadTokensFromOther(other string) int64 {
+	if strings.TrimSpace(other) == "" {
+		return 0
+	}
+	otherMap, err := common.StrToMap(other)
+	if err != nil || otherMap == nil {
+		return 0
+	}
+	return mapInt64Value(otherMap, "cache_tokens")
+}
+
+func cacheWriteTokensFromOther(other string) int64 {
+	if strings.TrimSpace(other) == "" {
+		return 0
+	}
+	otherMap, err := common.StrToMap(other)
+	if err != nil || otherMap == nil {
+		return 0
+	}
+	if tokens := mapInt64Value(otherMap, "cache_write_tokens"); tokens > 0 {
+		return tokens
+	}
+	return mapInt64Value(otherMap, "cache_creation_tokens")
+}
+
+func GetUserUsageSummary(userId int, startTimestamp int64, endTimestamp int64) (summary UserUsageSummary, err error) {
+	summary.StartTimestamp = startTimestamp
+	summary.EndTimestamp = endTimestamp
+
+	tx := LOG_DB.Model(&Log{}).
+		Select("quota, prompt_tokens, completion_tokens, other").
+		Where("user_id = ? and type = ?", userId, LogTypeConsume)
+	if startTimestamp != 0 {
+		tx = tx.Where("created_at >= ?", startTimestamp)
+	}
+	if endTimestamp != 0 {
+		tx = tx.Where("created_at <= ?", endTimestamp)
+	}
+
+	var rows []usageSummaryLogRow
+	if err = tx.Find(&rows).Error; err != nil {
+		common.SysError("failed to query user usage summary: " + err.Error())
+		return summary, errors.New("查询用量统计失败")
+	}
+
+	summary.RequestCount = int64(len(rows))
+	for _, row := range rows {
+		summary.Quota += row.Quota
+		summary.PromptTokens += int64(row.PromptTokens)
+		summary.CompletionTokens += int64(row.CompletionTokens)
+		summary.CachedTokens += cacheReadTokensFromOther(row.Other)
+		summary.CacheWriteTokens += cacheWriteTokensFromOther(row.Other)
+	}
+	summary.TotalTokens = summary.PromptTokens + summary.CompletionTokens
+	if summary.PromptTokens > 0 && summary.CachedTokens > 0 {
+		summary.CacheHitRate = float64(summary.CachedTokens) / float64(summary.PromptTokens)
+	}
+
+	return summary, nil
+}
+
+func normalizeUsageDimension(dimension string) string {
+	switch dimension {
+	case "user", "token", "model":
+		return dimension
+	default:
+		return "user"
+	}
+}
+
+func usageSummaryItemKey(row usageSummaryLogRow, dimension string) (key string, label string) {
+	switch dimension {
+	case "token":
+		if row.TokenId > 0 {
+			key = strconv.Itoa(row.TokenId)
+		} else {
+			key = row.TokenName
+		}
+		label = row.TokenName
+		if label == "" {
+			label = "未命名令牌"
+		}
+	case "model":
+		key = row.ModelName
+		label = row.ModelName
+		if label == "" {
+			key = "unknown"
+			label = "未知模型"
+		}
+	default:
+		if row.UserId > 0 {
+			key = strconv.Itoa(row.UserId)
+		} else {
+			key = row.Username
+		}
+		label = row.Username
+		if label == "" {
+			label = "未知用户"
+		}
+	}
+	if key == "" {
+		key = label
+	}
+	return key, label
+}
+
+func applyUsageSummaryRow(item *UsageSummaryItem, row usageSummaryLogRow) {
+	item.Quota += row.Quota
+	item.RequestCount++
+	item.PromptTokens += int64(row.PromptTokens)
+	item.CompletionTokens += int64(row.CompletionTokens)
+	item.CachedTokens += cacheReadTokensFromOther(row.Other)
+	item.CacheWriteTokens += cacheWriteTokensFromOther(row.Other)
+}
+
+func finalizeUsageSummaryItem(item *UsageSummaryItem) {
+	item.TotalTokens = item.PromptTokens + item.CompletionTokens
+	if item.PromptTokens > 0 && item.CachedTokens > 0 {
+		item.CacheHitRate = float64(item.CachedTokens) / float64(item.PromptTokens)
+	}
+}
+
+func GetUsageSummary(userId int, isAdmin bool, dimension string, startTimestamp int64, endTimestamp int64, limit int) (result UsageSummaryResult, err error) {
+	dimension = normalizeUsageDimension(dimension)
+	result.Dimension = dimension
+	result.StartTimestamp = startTimestamp
+	result.EndTimestamp = endTimestamp
+	result.Total = UsageSummaryItem{
+		Dimension: "total",
+		Key:       "total",
+		Label:     "总计",
+	}
+	if limit <= 0 {
+		limit = 20
+	}
+	if limit > 100 {
+		limit = 100
+	}
+
+	tx := LOG_DB.Model(&Log{}).
+		Select("quota, prompt_tokens, completion_tokens, user_id, username, token_id, token_name, model_name, other").
+		Where("type = ?", LogTypeConsume)
+	if !isAdmin {
+		tx = tx.Where("user_id = ?", userId)
+	}
+	if startTimestamp != 0 {
+		tx = tx.Where("created_at >= ?", startTimestamp)
+	}
+	if endTimestamp != 0 {
+		tx = tx.Where("created_at <= ?", endTimestamp)
+	}
+
+	var rows []usageSummaryLogRow
+	if err = tx.Find(&rows).Error; err != nil {
+		common.SysError("failed to query usage summary: " + err.Error())
+		return result, errors.New("查询用量统计失败")
+	}
+
+	itemMap := make(map[string]*UsageSummaryItem)
+	for _, row := range rows {
+		applyUsageSummaryRow(&result.Total, row)
+		key, label := usageSummaryItemKey(row, dimension)
+		item, ok := itemMap[key]
+		if !ok {
+			item = &UsageSummaryItem{
+				Dimension: dimension,
+				Key:       key,
+				Label:     label,
+				UserId:    row.UserId,
+				TokenId:   row.TokenId,
+			}
+			itemMap[key] = item
+		}
+		applyUsageSummaryRow(item, row)
+	}
+
+	finalizeUsageSummaryItem(&result.Total)
+	result.Items = make([]UsageSummaryItem, 0, len(itemMap))
+	for _, item := range itemMap {
+		finalizeUsageSummaryItem(item)
+		result.Items = append(result.Items, *item)
+	}
+	sort.Slice(result.Items, func(i, j int) bool {
+		if result.Items[i].Quota == result.Items[j].Quota {
+			return result.Items[i].RequestCount > result.Items[j].RequestCount
+		}
+		return result.Items[i].Quota > result.Items[j].Quota
+	})
+	if len(result.Items) > limit {
+		result.Items = result.Items[:limit]
+	}
+
+	return result, nil
 }
 
 func SumUsedQuota(logType int, startTimestamp int64, endTimestamp int64, modelName string, username string, tokenName string, channel int, group string) (stat Stat, err error) {

@@ -48,6 +48,7 @@ const OtherSetting = () => {
     Footer: '',
     About: '',
     HomePageContent: '',
+    HomeInfoCards: '',
   });
   let [loading, setLoading] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
@@ -79,6 +80,7 @@ const OtherSetting = () => {
     SystemName: false,
     Logo: false,
     HomePageContent: false,
+    HomeInfoCards: false,
     About: false,
     Footer: false,
     CheckUpdate: false,
@@ -150,6 +152,18 @@ const OtherSetting = () => {
   };
   // 个性化设置
   const formAPIPersonalization = useRef();
+  const homeHtmlInputRef = useRef();
+
+  const handleHomeHtmlUpload = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    const content = await file.text();
+    setInputs((inputs) => ({ ...inputs, HomePageContent: content }));
+    formAPIPersonalization.current?.setValue?.('HomePageContent', content);
+  };
+
   //  个性化设置 - SystemName
   const submitSystemName = async () => {
     try {
@@ -188,7 +202,7 @@ const OtherSetting = () => {
     try {
       setLoadingInput((loadingInput) => ({
         ...loadingInput,
-        HomePageContent: true,
+        [key]: true,
       }));
       await updateOption(key, inputs[key]);
       showSuccess('首页内容已更新');
@@ -198,7 +212,7 @@ const OtherSetting = () => {
     } finally {
       setLoadingInput((loadingInput) => ({
         ...loadingInput,
-        HomePageContent: false,
+        [key]: false,
       }));
     }
   };
@@ -505,6 +519,32 @@ const OtherSetting = () => {
                 loading={loadingInput['HomePageContent']}
               >
                 {t('设置首页内容')}
+              </Button>
+              <input
+                ref={homeHtmlInputRef}
+                type='file'
+                accept='.html,.htm,text/html'
+                style={{ display: 'none' }}
+                onChange={handleHomeHtmlUpload}
+              />
+              <Button onClick={() => homeHtmlInputRef.current?.click()}>
+                {t('上传 HTML 文件')}
+              </Button>
+              <Form.TextArea
+                label={t('首页信息卡片')}
+                placeholder={t(
+                  '输入 JSON 数组配置默认首页卡片，例如 [{"title":"服务","lines":["第一行","第二行"],"accent":true}]。留空使用内置卡片。',
+                )}
+                field={'HomeInfoCards'}
+                onChange={handleInputChange}
+                style={{ fontFamily: 'JetBrains Mono, Consolas' }}
+                autosize={{ minRows: 6, maxRows: 12 }}
+              />
+              <Button
+                onClick={() => submitOption('HomeInfoCards')}
+                loading={loadingInput['HomeInfoCards']}
+              >
+                {t('设置首页信息卡片')}
               </Button>
               <Form.TextArea
                 label={t('关于')}

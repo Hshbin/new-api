@@ -17,18 +17,15 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useTranslation } from 'react-i18next'
-import { useAuthStore } from '@/stores/auth-store'
 import { Markdown } from '@/components/ui/markdown'
 import { PublicLayout } from '@/components/layout'
 import { Footer } from '@/components/layout/components/footer'
-import { CTA, Features, Hero, HowItWorks, Stats } from './components'
+import { HomeAnnouncement } from './components/home-announcement'
 import { useHomePageContent } from './hooks'
 
 export function Home() {
   const { t } = useTranslation()
-  const { auth } = useAuthStore()
-  const isAuthenticated = !!auth.user
-  const { content, isLoaded, isUrl } = useHomePageContent()
+  const { content, isLoaded, isUrl, isHtml } = useHomePageContent()
 
   if (!isLoaded) {
     return (
@@ -50,6 +47,11 @@ export function Home() {
               className='h-screen w-full border-none'
               title={t('Custom Home Page')}
             />
+          ) : isHtml ? (
+            <div
+              className='custom-home-content'
+              dangerouslySetInnerHTML={{ __html: content }}
+            />
           ) : (
             <div className='container mx-auto py-8'>
               <Markdown className='custom-home-content'>{content}</Markdown>
@@ -62,11 +64,7 @@ export function Home() {
 
   return (
     <PublicLayout showMainContainer={false}>
-      <Hero isAuthenticated={isAuthenticated} />
-      <Stats />
-      <Features />
-      <HowItWorks />
-      <CTA isAuthenticated={isAuthenticated} />
+      <HomeAnnouncement />
       <Footer />
     </PublicLayout>
   )

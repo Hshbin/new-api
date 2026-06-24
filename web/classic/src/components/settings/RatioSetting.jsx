@@ -48,6 +48,8 @@ const RatioSetting = () => {
     ExposeRatioEnabled: false,
     UserUsableGroups: '',
     'group_ratio_setting.group_special_usable_group': '',
+    'group_ratio_restore_setting.enabled': true,
+    'group_ratio_restore_setting.rules': '[]',
   });
 
   const [loading, setLoading] = useState(false);
@@ -65,7 +67,13 @@ const RatioSetting = () => {
             // 如果后端返回的不是合法 JSON，直接展示
           }
         }
-        if (['DefaultUseAutoGroup', 'ExposeRatioEnabled'].includes(item.key)) {
+        if (
+          [
+            'DefaultUseAutoGroup',
+            'ExposeRatioEnabled',
+            'group_ratio_restore_setting.enabled',
+          ].includes(item.key)
+        ) {
           newInputs[item.key] = toBoolean(item.value);
         } else {
           newInputs[item.key] = item.value;

@@ -150,6 +150,69 @@ func GetLogsSelfStat(c *gin.Context) {
 	return
 }
 
+func GetLogsSelfUsageSummary(c *gin.Context) {
+	userId := c.GetInt("id")
+	startTimestamp, _ := strconv.ParseInt(c.Query("start_timestamp"), 10, 64)
+	endTimestamp, _ := strconv.ParseInt(c.Query("end_timestamp"), 10, 64)
+	if startTimestamp != 0 && endTimestamp != 0 && endTimestamp < startTimestamp {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "结束时间不能早于开始时间",
+		})
+		return
+	}
+	if startTimestamp != 0 && endTimestamp != 0 && endTimestamp-startTimestamp > 2592000 {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "时间跨度不能超过 1 个月",
+		})
+		return
+	}
+	summary, err := model.GetUserUsageSummary(userId, startTimestamp, endTimestamp)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data":    summary,
+	})
+}
+
+func GetLogsUsageSummary(c *gin.Context) {
+	userId := c.GetInt("id")
+	role := c.GetInt("role")
+	dimension := c.DefaultQuery("dimension", "user")
+	startTimestamp, _ := strconv.ParseInt(c.Query("start_timestamp"), 10, 64)
+	endTimestamp, _ := strconv.ParseInt(c.Query("end_timestamp"), 10, 64)
+	limit, _ := strconv.Atoi(c.Query("limit"))
+	if startTimestamp != 0 && endTimestamp != 0 && endTimestamp < startTimestamp {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "结束时间不能早于开始时间",
+		})
+		return
+	}
+	if startTimestamp != 0 && endTimestamp != 0 && endTimestamp-startTimestamp > 2592000 {
+		c.JSON(http.StatusOK, gin.H{
+			"success": false,
+			"message": "时间跨度不能超过 1 个月",
+		})
+		return
+	}
+	summary, err := model.GetUsageSummary(userId, role >= common.RoleAdminUser, dimension, startTimestamp, endTimestamp, limit)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data":    summary,
+	})
+}
+
 // DeleteHistoryLogs is the legacy synchronous log cleanup endpoint (DELETE /api/log/).
 // It deletes directly instead of going through the async system task. It is kept only
 // for the classic frontend; the default frontend uses POST /api/system-task/log-cleanup.

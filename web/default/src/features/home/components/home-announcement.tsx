@@ -1,0 +1,225 @@
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+import { useEffect, useMemo, useState, type ComponentType, type ReactNode } from 'react'
+import {
+  Bell,
+  Bot,
+  Clock,
+  Coins,
+  Headphones,
+  ShieldCheck,
+} from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { useStatus } from '@/hooks/use-status'
+import { getHomeInfoCards } from '../api'
+import type { HomeInfoCard } from '../types'
+
+const DEFAULT_HOME_INFO_CARDS: HomeInfoCard[] = [
+  {
+    title: 'Service and Support',
+    lines: [
+      'After-sales QQ: 2582328031',
+      'Community QQ group: 936663227',
+      'Service hours: 9:00 - 22:00',
+    ],
+    accent: true,
+  },
+  {
+    title: 'Model Support',
+    lines: [
+      'Currently only gpt-5.5 is supported. Use gpt-pro from the full-performance pool.',
+    ],
+  },
+  {
+    title: 'Billing Notes',
+    lines: [
+      'Core rate: 0.25 yuan = 10K',
+      'Recharge rate: 1:1',
+      'Usage multiplier: 0.25x',
+      'Service note: full performance, no false labeling',
+    ],
+  },
+  {
+    title: 'Notice',
+    lines: [
+      'Keep your account and API keys secure, and contact support if you notice abnormal usage.',
+    ],
+    accent: true,
+  },
+]
+
+const CARD_ICONS = [Headphones, Bot, Coins, ShieldCheck]
+
+function parseHomeInfoCards(value?: string): HomeInfoCard[] {
+  if (!value?.trim()) return DEFAULT_HOME_INFO_CARDS
+
+  try {
+    const parsed = JSON.parse(value) as HomeInfoCard[]
+    if (!Array.isArray(parsed)) return DEFAULT_HOME_INFO_CARDS
+
+    const cards = parsed
+      .map((item) => ({
+        title: String(item?.title ?? '').trim(),
+        lines: Array.isArray(item?.lines)
+          ? item.lines.map((line) => String(line).trim()).filter(Boolean)
+          : [],
+        accent: Boolean(item?.accent),
+      }))
+      .filter((item) => item.title && item.lines.length > 0)
+
+    return cards.length > 0 ? cards : DEFAULT_HOME_INFO_CARDS
+  } catch {
+    return DEFAULT_HOME_INFO_CARDS
+  }
+}
+
+function AnnouncementLine(props: {
+  icon: ComponentType<{ className?: string; 'aria-hidden'?: boolean }>
+  label: string
+  children: ReactNode
+  accent?: boolean
+}) {
+  const Icon = props.icon
+  return (
+    <div className='flex gap-3 rounded-xl border bg-background/65 p-3 shadow-xs'>
+      <span className='bg-primary/10 text-primary flex size-9 shrink-0 items-center justify-center rounded-lg'>
+        <Icon className='size-4' aria-hidden />
+      </span>
+      <div className='min-w-0'>
+        <div className='text-sm font-semibold'>{props.label}</div>
+        <div className='text-muted-foreground mt-1 text-sm leading-relaxed'>
+          {props.children}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function HomeAnnouncement() {
+  const { t } = useTranslation()
+  const { status } = useStatus()
+  const systemName = (status?.system_name as string | undefined) || 'New API'
+  const [homeInfoCardsRaw, setHomeInfoCardsRaw] = useState('')
+  const homeInfoCards = useMemo(
+    () => parseHomeInfoCards(homeInfoCardsRaw),
+    [homeInfoCardsRaw]
+  )
+
+  useEffect(() => {
+    let mounted = true
+
+    getHomeInfoCards()
+      .then((response) => {
+        if (mounted && response.success) {
+          setHomeInfoCardsRaw(response.data ?? '')
+        }
+      })
+      .catch((error) => {
+        // eslint-disable-next-line no-console
+        console.error('Failed to load home info cards:', error)
+      })
+
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  return (
+    <main className='bg-background overflow-x-hidden'>
+      <section className='relative border-b'>
+        <div
+          className='absolute inset-0 bg-[linear-gradient(120deg,color-mix(in_oklch,var(--primary)_12%,transparent),transparent_38%),radial-gradient(ellipse_70%_50%_at_88%_8%,color-mix(in_oklch,var(--accent)_24%,transparent),transparent_62%),radial-gradient(ellipse_55%_45%_at_16%_88%,color-mix(in_oklch,var(--primary)_10%,transparent),transparent_64%)]'
+          aria-hidden='true'
+        />
+        <div className='relative container mx-auto grid min-h-[calc(100vh-4rem)] items-center gap-8 px-4 py-12 lg:grid-cols-[minmax(0,0.92fr)_minmax(420px,1.08fr)] lg:py-16'>
+          <div className='flex max-w-2xl flex-col gap-7 rounded-[2rem] border bg-card/70 p-6 shadow-sm backdrop-blur md:p-8'>
+            <div className='flex items-center gap-3'>
+              <img
+                src='/logo.png'
+                alt=''
+                className='size-11 rounded-xl border bg-background object-contain p-1.5 shadow-sm'
+              />
+              <div className='min-w-0'>
+                <div className='truncate text-sm font-medium text-muted-foreground'>
+                  {systemName}
+                </div>
+                <h1 className='text-4xl font-semibold tracking-tight sm:text-5xl'>
+                  {t('Welcome to use')}
+                </h1>
+              </div>
+            </div>
+
+            <div className='flex flex-col gap-4'>
+              <p className='text-xl leading-relaxed text-foreground sm:text-2xl'>
+                {t('Enjoy stable and high-performance model services.')}
+              </p>
+              <p className='max-w-xl text-base leading-relaxed text-muted-foreground'>
+                {t(
+                  'Use resources reasonably, avoid high-frequency abnormal requests, and help keep service stable.'
+                )}
+              </p>
+            </div>
+          </div>
+
+          <div className='grid gap-3'>
+            {homeInfoCards.map((card, index) => {
+              const Icon = CARD_ICONS[index % CARD_ICONS.length]
+
+              return (
+                <AnnouncementLine
+                  key={`${card.title}-${index}`}
+                  icon={Icon}
+                  label={card.title}
+                  accent={card.accent}
+                >
+                  <div className='grid gap-1 sm:grid-cols-2'>
+                    {card.lines.map((line) => (
+                      <span key={line}>{line}</span>
+                    ))}
+                  </div>
+                </AnnouncementLine>
+              )
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section className='border-b bg-muted/25'>
+        <div className='container mx-auto grid gap-3 px-4 py-6 md:grid-cols-3'>
+          <div className='flex items-center gap-3'>
+            <Bell className='text-primary size-5 shrink-0' aria-hidden />
+            <div className='text-sm font-medium'>{t('Notice')}</div>
+          </div>
+          <div className='flex items-center gap-3'>
+            <ShieldCheck className='text-primary size-5 shrink-0' aria-hidden />
+            <div className='text-sm font-medium'>
+              {t('Stable service first')}
+            </div>
+          </div>
+          <div className='flex items-center gap-3'>
+            <Clock className='text-primary size-5 shrink-0' aria-hidden />
+            <div className='text-sm font-medium'>
+              {t('Support available every day')}
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  )
+}

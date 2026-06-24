@@ -28,6 +28,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form'
 import { Textarea } from '@/components/ui/textarea'
 import { SettingsForm } from '../components/settings-form-layout'
@@ -94,6 +95,9 @@ export function NoticeSection({ defaultValue }: NoticeSectionProps) {
                     {...field}
                   />
                 </FormControl>
+                <FormDescription>
+                  {t('Maximum 1000 characters. Supports Markdown and HTML.')}
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}

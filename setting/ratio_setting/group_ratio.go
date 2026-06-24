@@ -68,6 +68,10 @@ func GetGroupRatioCopy() map[string]float64 {
 	return groupRatioMap.ReadAll()
 }
 
+func SetGroupRatio(name string, ratio float64) {
+	groupRatioMap.Set(name, ratio)
+}
+
 func ContainsGroupRatio(name string) bool {
 	_, ok := groupRatioMap.Get(name)
 	return ok

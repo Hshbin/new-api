@@ -58,6 +58,8 @@ const defaultBillingSettings: BillingSettings = {
   AutoGroups: '',
   DefaultUseAutoGroup: false,
   'group_ratio_setting.group_special_usable_group': '{}',
+  'group_ratio_restore_setting.enabled': true,
+  'group_ratio_restore_setting.rules': '[]',
   PayAddress: '',
   EpayId: '',
   EpayKey: '',

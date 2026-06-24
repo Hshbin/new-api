@@ -33,6 +33,34 @@ export interface QuotaDataItem {
   quota?: number
 }
 
+export interface UserUsageSummary {
+  dimension?: UsageSummaryDimension
+  key?: string
+  label?: string
+  user_id?: number
+  token_id?: number
+  quota: number
+  request_count: number
+  prompt_tokens: number
+  completion_tokens: number
+  total_tokens: number
+  cached_tokens: number
+  cache_write_tokens: number
+  cache_hit_rate: number
+  start_timestamp?: number
+  end_timestamp?: number
+}
+
+export type UsageSummaryDimension = 'user' | 'token' | 'model'
+
+export interface UsageSummaryResult {
+  dimension: UsageSummaryDimension
+  start_timestamp: number
+  end_timestamp: number
+  total: UserUsageSummary
+  items: UserUsageSummary[]
+}
+
 export interface FlowQuotaDataItem {
   user_id?: number
   username?: string
@@ -82,12 +110,7 @@ export interface FlowBuildOptions {
   visibleStages?: FlowNodeKind[]
   topNodeLimit?: number
   overflowMode?: FlowOverflowMode
-  // When true, sensitive node labels (users, tokens, nodes, groups, channels)
-  // are partially masked in the rendered graph while keeping node identity so
-  // the Sankey shape stays intact.
   maskSensitive?: boolean
-  // Resolves the label for a token whose record no longer exists (deleted).
-  // Lets the caller inject a localized string such as "Deleted (123)".
   deletedTokenLabel?: (tokenId: number) => string
   otherNodeLabel?: (kind: FlowNodeKind) => string
 }
@@ -164,6 +187,7 @@ export interface ProcessedFlowData {
   filterOptions: FlowFilterOptions
 }
 
+
 // ============================================================================
 // Uptime Monitoring Types
 // ============================================================================
@@ -200,14 +224,6 @@ export interface DashboardChartPreferences {
   modelAnalyticsChart: ModelAnalyticsChartTab
   defaultTimeRangeDays: number
   defaultTimeGranularity: TimeGranularity
-}
-
-// User analytics selections are held by the dashboard parent so they survive
-// switching between dashboard sub-sections, matching the model/flow filters.
-export interface UserChartsFilters {
-  timeGranularity: TimeGranularity
-  selectedRange: number
-  topUserLimit: number
 }
 
 // ============================================================================

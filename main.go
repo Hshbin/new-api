@@ -119,6 +119,9 @@ func main() {
 	// Subscription quota reset task (daily/weekly/monthly/custom)
 	service.StartSubscriptionQuotaResetTask()
 
+	// Scheduled group ratio restore task
+	model.StartGroupRatioRestoreTask()
+
 	// Persistent system maintenance task runner
 	service.StartSystemTaskRunner()
 

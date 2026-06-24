@@ -20,7 +20,10 @@ import { api } from '@/lib/api'
 import type {
   FlowQuotaDataItem,
   QuotaDataItem,
+  UsageSummaryDimension,
+  UsageSummaryResult,
   UptimeGroupResult,
+  UserUsageSummary,
 } from './types'
 
 // ============================================================================
@@ -60,6 +63,30 @@ export async function getUserQuotaDataByUsers(params: {
 }) {
   const res = await api.get<{ success: boolean; data: QuotaDataItem[] }>(
     '/api/data/users',
+    { params }
+  )
+  return res.data
+}
+
+export async function getUserUsageSummary(params: {
+  start_timestamp: number
+  end_timestamp: number
+  dimension?: UsageSummaryDimension
+  limit?: number
+}) {
+  const res = await api.get<{ success: boolean; data: UsageSummaryResult }>(
+    '/api/log/usage_summary',
+    { params }
+  )
+  return res.data
+}
+
+export async function getSelfUsageSummary(params: {
+  start_timestamp: number
+  end_timestamp: number
+}) {
+  const res = await api.get<{ success: boolean; data: UserUsageSummary }>(
+    '/api/log/self/usage_summary',
     { params }
   )
   return res.data

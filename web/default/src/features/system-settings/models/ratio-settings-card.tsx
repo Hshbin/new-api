@@ -124,6 +124,24 @@ const createGroupSchema = (t: Translate) =>
     }),
     DefaultUseAutoGroup: z.boolean(),
     GroupSpecialUsableGroup: createJsonStringField(t),
+    GroupRatioRestoreEnabled: z.boolean(),
+    GroupRatioRestoreRules: createJsonStringField(t, {
+      predicate: (parsed) =>
+        Array.isArray(parsed) &&
+        parsed.every(
+          (item) =>
+            item &&
+            typeof item === 'object' &&
+            typeof item.group === 'string' &&
+            item.group.trim() !== '' &&
+            typeof item.ratio === 'number' &&
+            item.ratio >= 0 &&
+            typeof item.restore_at === 'number' &&
+            item.restore_at > 0
+        ),
+      predicateMessage:
+        'Expected an array of group ratio restore rules with group, ratio, and restore_at',
+    }),
   })
 
 type ModelFormValues = z.infer<ReturnType<typeof createModelSchema>>
@@ -195,6 +213,10 @@ export function RatioSettingsCard({
     GroupSpecialUsableGroup: normalizeJsonString(
       groupDefaults.GroupSpecialUsableGroup
     ),
+    GroupRatioRestoreEnabled: groupDefaults.GroupRatioRestoreEnabled,
+    GroupRatioRestoreRules: normalizeJsonString(
+      groupDefaults.GroupRatioRestoreRules
+    ),
   })
   const modelSchema = useMemo(() => createModelSchema(t), [t])
   const groupSchema = useMemo(() => createGroupSchema(t), [t])
@@ -231,6 +253,9 @@ export function RatioSettingsCard({
       AutoGroups: formatJsonForTextarea(groupDefaults.AutoGroups),
       GroupSpecialUsableGroup: formatJsonForTextarea(
         groupDefaults.GroupSpecialUsableGroup
+      ),
+      GroupRatioRestoreRules: formatJsonForTextarea(
+        groupDefaults.GroupRatioRestoreRules
       ),
     },
   })
@@ -281,6 +306,10 @@ export function RatioSettingsCard({
       GroupSpecialUsableGroup: normalizeJsonString(
         groupDefaults.GroupSpecialUsableGroup
       ),
+      GroupRatioRestoreEnabled: groupDefaults.GroupRatioRestoreEnabled,
+      GroupRatioRestoreRules: normalizeJsonString(
+        groupDefaults.GroupRatioRestoreRules
+      ),
     }
 
     groupForm.reset({
@@ -292,6 +321,9 @@ export function RatioSettingsCard({
       AutoGroups: formatJsonForTextarea(groupDefaults.AutoGroups),
       GroupSpecialUsableGroup: formatJsonForTextarea(
         groupDefaults.GroupSpecialUsableGroup
+      ),
+      GroupRatioRestoreRules: formatJsonForTextarea(
+        groupDefaults.GroupRatioRestoreRules
       ),
     })
   }, [groupDefaults, groupForm])
@@ -351,12 +383,18 @@ export function RatioSettingsCard({
         GroupSpecialUsableGroup: normalizeJsonString(
           values.GroupSpecialUsableGroup
         ),
+        GroupRatioRestoreEnabled: values.GroupRatioRestoreEnabled,
+        GroupRatioRestoreRules: normalizeJsonString(
+          values.GroupRatioRestoreRules
+        ),
       }
 
       // Map form field names to API keys (most are 1:1, except GroupSpecialUsableGroup)
       const apiKeyMap: Record<string, string> = {
         GroupSpecialUsableGroup:
           'group_ratio_setting.group_special_usable_group',
+        GroupRatioRestoreEnabled: 'group_ratio_restore_setting.enabled',
+        GroupRatioRestoreRules: 'group_ratio_restore_setting.rules',
       }
 
       const updates = (

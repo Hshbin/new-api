@@ -50,54 +50,10 @@ export type ConfirmPaymentComplianceResponse = {
   }
 }
 
-export type SystemTaskStatus = 'pending' | 'running' | 'succeeded' | 'failed'
-
-export type SystemTask<
-  TPayload = Record<string, unknown>,
-  TState = Record<string, unknown>,
-  TResult = Record<string, unknown>,
-> = {
-  id: number
-  task_id: string
-  type: string
-  status: SystemTaskStatus
-  active_key?: string
-  payload?: TPayload
-  state?: TState
-  result?: TResult
-  error?: string
-  locked_by?: string
-  locked_until?: number
-  created_at: number
-  updated_at: number
-}
-
-export type LogCleanupTaskPayload = {
-  target_timestamp: number
-  batch_size: number
-}
-
-export type LogCleanupTaskState = {
-  total: number
-  processed: number
-  progress: number
-  remaining: number
-}
-
-export type LogCleanupTaskResult = {
-  deleted_count: number
-}
-
-export type LogCleanupTask = SystemTask<
-  LogCleanupTaskPayload,
-  LogCleanupTaskState,
-  LogCleanupTaskResult
->
-
-export type SystemTaskResponse<TTask = SystemTask | null> = {
+export type DeleteLogsResponse = {
   success: boolean
   message: string
-  data?: TTask
+  data?: number
 }
 
 export type SiteSettings = {
@@ -108,6 +64,7 @@ export type SiteSettings = {
   Footer: string
   About: string
   HomePageContent: string
+  HomeInfoCards: string
   ServerAddress: string
   'legal.user_agreement': string
   'legal.privacy_policy': string
@@ -218,16 +175,8 @@ export type ModelSettings = {
   AutoGroups: string
   DefaultUseAutoGroup: boolean
   'group_ratio_setting.group_special_usable_group': string
-  RetryTimes: number
-  ChannelDisableThreshold: string
-  AutomaticDisableChannelEnabled: boolean
-  AutomaticEnableChannelEnabled: boolean
-  AutomaticDisableKeywords: string
-  AutomaticDisableStatusCodes: string
-  AutomaticRetryStatusCodes: string
-  'monitor_setting.auto_test_channel_enabled': boolean
-  'monitor_setting.auto_test_channel_minutes': number
-  'monitor_setting.channel_test_mode': 'scheduled_all' | 'passive_recovery'
+  'group_ratio_restore_setting.enabled': boolean
+  'group_ratio_restore_setting.rules': string
   'channel_affinity_setting.enabled': boolean
   'channel_affinity_setting.switch_on_success': boolean
   'channel_affinity_setting.keep_on_channel_disabled': boolean
@@ -272,6 +221,8 @@ export type BillingSettings = {
   AutoGroups: string
   DefaultUseAutoGroup: boolean
   'group_ratio_setting.group_special_usable_group': string
+  'group_ratio_restore_setting.enabled': boolean
+  'group_ratio_restore_setting.rules': string
   PayAddress: string
   EpayId: string
   EpayKey: string
@@ -324,18 +275,25 @@ export type BillingSettings = {
 }
 
 export type OperationsSettings = {
+  RetryTimes: number
   DefaultCollapseSidebar: boolean
   DemoSiteEnabled: boolean
   SelfUseModeEnabled: boolean
+  ChannelDisableThreshold: string
   QuotaRemindThreshold: string
+  AutomaticDisableChannelEnabled: boolean
+  AutomaticEnableChannelEnabled: boolean
+  AutomaticDisableKeywords: string
+  AutomaticDisableStatusCodes: string
+  AutomaticRetryStatusCodes: string
+  'monitor_setting.auto_test_channel_enabled': boolean
+  'monitor_setting.auto_test_channel_minutes': number
   SMTPServer: string
   SMTPPort: string
   SMTPAccount: string
   SMTPFrom: string
   SMTPToken: string
   SMTPSSLEnabled: boolean
-  SMTPStartTLSEnabled: boolean
-  SMTPInsecureSkipVerify: boolean
   SMTPForceAuthLogin: boolean
   WorkerUrl: string
   WorkerValidKey: string

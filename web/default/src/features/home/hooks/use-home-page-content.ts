@@ -24,6 +24,15 @@ import type { HomePageContentResult } from '../types'
 
 const STORAGE_KEY = 'home_page_content'
 
+function decodeHtmlEntities(value: string): string {
+  if (!value.includes('&')) return value
+  if (typeof document === 'undefined') return value
+
+  const textarea = document.createElement('textarea')
+  textarea.innerHTML = value
+  return textarea.value
+}
+
 /**
  * Hook to load and manage custom home page content
  * Supports both Markdown/HTML content and iframe URLs
@@ -39,7 +48,7 @@ export function useHomePageContent(): HomePageContentResult {
       // Load from localStorage first for immediate display
       const cached = localStorage.getItem(STORAGE_KEY)
       if (cached && mounted) {
-        setContent(cached)
+        setContent(decodeHtmlEntities(cached))
       }
 
       try {
@@ -49,8 +58,9 @@ export function useHomePageContent(): HomePageContentResult {
         if (!mounted) return
 
         if (success && data) {
-          setContent(data)
-          localStorage.setItem(STORAGE_KEY, data)
+          const normalized = decodeHtmlEntities(data)
+          setContent(normalized)
+          localStorage.setItem(STORAGE_KEY, normalized)
         } else {
           // Clear content if API returns empty
           setContent('')
@@ -76,6 +86,7 @@ export function useHomePageContent(): HomePageContentResult {
   }, [])
 
   let isUrl = false
+  let isHtml = false
   try {
     const url = new URL(content)
     isUrl = url.protocol === 'http:' || url.protocol === 'https:'
@@ -83,5 +94,12 @@ export function useHomePageContent(): HomePageContentResult {
     // not a URL
   }
 
-  return { content, isLoaded, isUrl }
+  const trimmed = content.trim()
+  isHtml =
+    /^<!doctype\s+html/i.test(trimmed) ||
+    /^<html[\s>]/i.test(trimmed) ||
+    /<body[\s>]/i.test(trimmed) ||
+    /<\/?[a-z][\s\S]*>/i.test(trimmed)
+
+  return { content, isLoaded, isUrl, isHtml }
 }

@@ -22,18 +22,26 @@ import {
   Button,
   Col,
   Collapsible,
+  DatePicker,
   Form,
+  InputNumber,
   Radio,
   RadioGroup,
   Row,
+  Select,
   SideSheet,
   Spin,
   Switch,
   Tabs,
   Typography,
 } from '@douyinfe/semi-ui';
-import { IconChevronDown, IconChevronUp } from '@douyinfe/semi-icons';
-import { IconHelpCircle } from '@douyinfe/semi-icons';
+import {
+  IconChevronDown,
+  IconChevronUp,
+  IconDelete,
+  IconHelpCircle,
+  IconPlus,
+} from '@douyinfe/semi-icons';
 import {
   compareObjects,
   API,
@@ -55,6 +63,8 @@ const OPTION_KEYS = [
   'UserUsableGroups',
   'GroupGroupRatio',
   'group_ratio_setting.group_special_usable_group',
+  'group_ratio_restore_setting.enabled',
+  'group_ratio_restore_setting.rules',
   'AutoGroups',
   'DefaultUseAutoGroup',
 ];
@@ -68,6 +78,35 @@ function parseJSONSafe(str, fallback) {
   }
 }
 
+function parseRestoreRules(str) {
+  return parseJSONSafe(str, []).filter(
+    (rule) =>
+      rule &&
+      typeof rule.group === 'string' &&
+      typeof rule.ratio === 'number' &&
+      typeof rule.restore_at === 'number',
+  );
+}
+
+function serializeRestoreRules(rules) {
+  return JSON.stringify(
+    rules.filter((rule) => rule.group && rule.restore_at > 0),
+    null,
+    2,
+  );
+}
+
+function timestampToDate(timestamp) {
+  return timestamp > 0 ? new Date(timestamp * 1000) : undefined;
+}
+
+function dateToTimestamp(value) {
+  if (!value) return 0;
+  const date = value instanceof Date ? value : new Date(value);
+  const timestamp = date.getTime();
+  return Number.isFinite(timestamp) ? Math.floor(timestamp / 1000) : 0;
+}
+
 export default function GroupRatioSettings(props) {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
@@ -79,6 +118,8 @@ export default function GroupRatioSettings(props) {
     UserUsableGroups: '',
     GroupGroupRatio: '',
     'group_ratio_setting.group_special_usable_group': '',
+    'group_ratio_restore_setting.enabled': true,
+    'group_ratio_restore_setting.rules': '[]',
     AutoGroups: '',
     DefaultUseAutoGroup: false,
   });
@@ -90,6 +131,65 @@ export default function GroupRatioSettings(props) {
     const ratioMap = parseJSONSafe(inputs.GroupRatio, {});
     return Object.keys(ratioMap);
   }, [inputs.GroupRatio]);
+
+  const restoreRules = useMemo(
+    () => parseRestoreRules(inputs['group_ratio_restore_setting.rules']),
+    [inputs['group_ratio_restore_setting.rules']],
+  );
+
+  const groupRatioMap = useMemo(
+    () => parseJSONSafe(inputs.GroupRatio, {}),
+    [inputs.GroupRatio],
+  );
+
+  const restoreGroupOptions = useMemo(
+    () =>
+      Array.from(
+        new Set([...groupNames, ...restoreRules.map((rule) => rule.group)]),
+      ).filter(Boolean),
+    [groupNames, restoreRules],
+  );
+
+  const updateRestoreRules = useCallback((rules) => {
+    setInputs((prev) => ({
+      ...prev,
+      'group_ratio_restore_setting.rules': serializeRestoreRules(rules),
+    }));
+  }, []);
+
+  const addRestoreRule = useCallback(() => {
+    const group = groupNames[0] || 'default';
+    const restoreDate = new Date();
+    restoreDate.setHours(restoreDate.getHours() + 1, 0, 0, 0);
+    updateRestoreRules([
+      ...restoreRules,
+      {
+        group,
+        ratio: Number.isFinite(groupRatioMap[group]) ? groupRatioMap[group] : 1,
+        restore_at: dateToTimestamp(restoreDate),
+      },
+    ]);
+  }, [groupNames, groupRatioMap, restoreRules, updateRestoreRules]);
+
+  const updateRestoreRule = useCallback(
+    (index, patch) => {
+      updateRestoreRules(
+        restoreRules.map((rule, currentIndex) =>
+          currentIndex === index ? { ...rule, ...patch } : rule,
+        ),
+      );
+    },
+    [restoreRules, updateRestoreRules],
+  );
+
+  const deleteRestoreRule = useCallback(
+    (index) => {
+      updateRestoreRules(
+        restoreRules.filter((_, currentIndex) => currentIndex !== index),
+      );
+    },
+    [restoreRules, updateRestoreRules],
+  );
 
   async function onSubmit() {
     if (editMode === 'manual') {
@@ -249,6 +349,119 @@ export default function GroupRatioSettings(props) {
           groupNames={groupNames}
           onChange={handleSpecialUsableChange}
         />
+      </Form.Section>
+
+      <Form.Section text={t('分组倍率定时恢复')}>
+        <Text type='tertiary' size='small' style={{ display: 'block', marginBottom: 12 }}>
+          {t('用于临时降低倍率后，在指定日期时间自动恢复到预设倍率。到点执行后规则会自动移除。')}
+        </Text>
+        <Row gutter={16}>
+          <Col xs={24} sm={12} md={8} lg={8} xl={8}>
+            <Form.Slot label={t('启用定时恢复')}>
+              <Switch
+                checked={!!inputs['group_ratio_restore_setting.enabled']}
+                size='default'
+                checkedText='开'
+                uncheckedText='关'
+                onChange={(value) =>
+                  setInputs((prev) => ({
+                    ...prev,
+                    'group_ratio_restore_setting.enabled': value,
+                  }))
+                }
+              />
+            </Form.Slot>
+          </Col>
+        </Row>
+        <div style={{ marginTop: 12 }}>
+          <Button icon={<IconPlus />} size='small' onClick={addRestoreRule}>
+            {t('新增恢复规则')}
+          </Button>
+        </div>
+        {restoreRules.length === 0 ? (
+          <div
+            style={{
+              marginTop: 12,
+              padding: 20,
+              border: '1px dashed var(--semi-color-border)',
+              borderRadius: 8,
+              color: 'var(--semi-color-text-2)',
+              textAlign: 'center',
+            }}
+          >
+            {t('暂无恢复规则，需要临时调整倍率时再添加。')}
+          </div>
+        ) : (
+          <div style={{ marginTop: 12, display: 'grid', gap: 12 }}>
+            {restoreRules.map((rule, index) => (
+              <div
+                key={`${rule.group}-${rule.restore_at}-${index}`}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'minmax(150px, 1fr) 130px minmax(260px, 1.5fr) auto',
+                  gap: 12,
+                  alignItems: 'end',
+                  padding: 12,
+                  border: '1px solid var(--semi-color-border)',
+                  borderRadius: 8,
+                }}
+              >
+                <div>
+                  <Text strong>{t('分组')}</Text>
+                  <Select
+                    value={rule.group}
+                    style={{ width: '100%', marginTop: 6 }}
+                    optionList={restoreGroupOptions.map((group) => ({
+                      label: group,
+                      value: group,
+                    }))}
+                    onChange={(group) =>
+                      updateRestoreRule(index, {
+                        group,
+                        ratio: Number.isFinite(groupRatioMap[group])
+                          ? groupRatioMap[group]
+                          : rule.ratio,
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <Text strong>{t('恢复倍率')}</Text>
+                  <InputNumber
+                    min={0}
+                    step={0.001}
+                    value={rule.ratio}
+                    style={{ width: '100%', marginTop: 6 }}
+                    onChange={(ratio) =>
+                      updateRestoreRule(index, { ratio: ratio ?? 0 })
+                    }
+                  />
+                </div>
+                <div>
+                  <Text strong>{t('恢复时间')}</Text>
+                  <DatePicker
+                    type='dateTime'
+                    format='yyyy-MM-dd HH:mm:ss'
+                    timePickerOpts={{ format: 'HH:mm:ss' }}
+                    value={timestampToDate(rule.restore_at)}
+                    style={{ width: '100%', marginTop: 6 }}
+                    onChange={(value) =>
+                      updateRestoreRule(index, {
+                        restore_at: dateToTimestamp(value),
+                      })
+                    }
+                  />
+                </div>
+                <Button
+                  type='danger'
+                  theme='borderless'
+                  icon={<IconDelete />}
+                  onClick={() => deleteRestoreRule(index)}
+                />
+              </div>
+            ))}
+          </div>
+        )}
       </Form.Section>
     </Form>
   );
@@ -411,6 +624,44 @@ export default function GroupRatioSettings(props) {
                 setInputs((prev) => ({
                   ...prev,
                   DefaultUseAutoGroup: value,
+                }))
+              }
+            />
+          </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col span={16}>
+            <Form.Switch
+              label={t('启用分组倍率定时恢复')}
+              field={'group_ratio_restore_setting.enabled'}
+              onChange={(value) =>
+                setInputs((prev) => ({
+                  ...prev,
+                  'group_ratio_restore_setting.enabled': value,
+                }))
+              }
+            />
+          </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col xs={24} sm={16}>
+            <Form.TextArea
+              label={t('分组倍率定时恢复规则')}
+              field={'group_ratio_restore_setting.rules'}
+              placeholder='[{"group":"vip","ratio":1,"restore_at":1790000000}]'
+              autosize={{ minRows: 4, maxRows: 10 }}
+              trigger='blur'
+              stopValidateWithError
+              rules={[
+                {
+                  validator: (rule, value) => verifyJSON(value),
+                  message: t('不是合法的 JSON 字符串'),
+                },
+              ]}
+              onChange={(value) =>
+                setInputs((prev) => ({
+                  ...prev,
+                  'group_ratio_restore_setting.rules': value,
                 }))
               }
             />
